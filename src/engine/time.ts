@@ -144,10 +144,12 @@ export function nextAnniversary(after: number, date: CalendarDate, hour: number)
   }
 }
 
+/** Âge révolu ; né un 29 février, on prend un an le 28 février des années non bissextiles. */
 export function ageAt(birth: CalendarDate, minutes: number): number {
   const c = toCalendar(minutes)
+  const birthday = Math.min(birth.day, daysInMonth(c.year, birth.month))
   let age = c.year - birth.year
-  if (c.month < birth.month || (c.month === birth.month && c.day < birth.day)) age--
+  if (c.month < birth.month || (c.month === birth.month && c.day < birthday)) age--
   return age
 }
 

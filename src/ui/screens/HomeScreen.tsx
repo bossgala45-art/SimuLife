@@ -10,9 +10,10 @@ type HomeScreenProps = {
   loadError?: string
   onNewLife: () => void
   onContinue: () => void
+  onDossier: () => void
 }
 
-export default function HomeScreen({ installed, savedLife, loadError, onNewLife, onContinue }: HomeScreenProps) {
+export default function HomeScreen({ installed, savedLife, loadError, onNewLife, onContinue, onDossier }: HomeScreenProps) {
   const [aboutOpen, setAboutOpen] = useState(false)
   const aboutId = useId()
 
@@ -41,6 +42,9 @@ export default function HomeScreen({ installed, savedLife, loadError, onNewLife,
         <button type="button" className={savedLife ? 'btn btn--secondary' : 'btn btn--primary'} onClick={onNewLife}>
           Nouvelle vie
         </button>
+        <button type="button" className="btn btn--secondary" onClick={onDossier}>
+          Dossier de vie
+        </button>
 
         <button
           type="button"
@@ -56,10 +60,10 @@ export default function HomeScreen({ installed, savedLife, loadError, onNewLife,
       {aboutOpen && (
         <section id={aboutId} className="home__about" aria-label="À propos de SIMULIFE">
           <p>
-            SIMULIFE simule des vies alternatives. Cette version est une démonstration du moteur : temps, besoins,
-            actions et événements.
+            SIMULIFE simule des vies alternatives. Le dossier de vie te permet de raconter ton histoire ; la
+            simulation reprend ensuite à l’âge que tu choisis.
           </p>
-          <p>Ta partie est enregistrée uniquement sur cet appareil.</p>
+          <p>Ta partie et ton dossier sont enregistrés uniquement sur cet appareil.</p>
         </section>
       )}
 

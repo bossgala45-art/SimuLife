@@ -42,16 +42,20 @@ describe('validation des actions', () => {
     expect(codes(validateAction(s, 'work'))).toEqual(['ALREADY_WORKED_TODAY'])
   })
 
-  it('refuse une action trop chère avec un message chiffré', () => {
-    const r = validateAction(newLife({ money: 3, needs: { hunger: 50 } }), 'cook_meal')
+  it('refuse une action trop chère avec un message chiffré, découvert autorisé compris', () => {
+    // −298 € avec 300 € de découvert autorisé : 2 € utilisables.
+    const r = validateAction(newLife({ money: -298, needs: { hunger: 50 } }), 'cook_meal')
     expect(r).toEqual({
       ok: false,
-      issues: [{ code: 'INSUFFICIENT_MONEY', message: 'Pas assez d’argent : 6 € nécessaires, 3 € disponibles.' }],
+      issues: [
+        { code: 'INSUFFICIENT_MONEY', message: 'Pas assez d’argent : 6 € nécessaires, 2 € disponibles (découvert autorisé compris).' },
+      ],
     })
+    expect(validateAction(newLife({ money: 3, needs: { hunger: 50 } }), 'cook_meal')).toEqual({ ok: true })
   })
 
   it('laisse les actions gratuites possibles avec un compte à découvert', () => {
-    const s = newLife({ money: -92, needs: { hunger: 50 } })
+    const s = newLife({ money: -300, needs: { hunger: 50 } })
     expect(validateAction(s, 'wait')).toEqual({ ok: true })
     expect(validateAction(s, 'shower')).toEqual({ ok: true })
     expect(codes(validateAction(s, 'cook_meal'))).toEqual(['INSUFFICIENT_MONEY'])

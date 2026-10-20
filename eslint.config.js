@@ -21,16 +21,16 @@ export default defineConfig([
     },
   },
   {
-    // Le moteur de simulation doit rester indépendant de l'interface :
-    // aucun import de React, du DOM applicatif ou du dossier ui/.
-    files: ['src/engine/**/*.ts'],
+    // Le moteur de simulation et le dossier de vie doivent rester indépendants de l'interface :
+    // aucun import de React, du dossier ui/ ni du stockage.
+    files: ['src/engine/**/*.ts', 'src/dossier/**/*.ts'],
     rules: {
       'no-restricted-imports': [
         'error',
         {
           patterns: [
-            { group: ['react', 'react-dom', 'react/*', 'react-dom/*'], message: 'Le moteur ne doit pas dépendre de React.' },
-            { group: ['**/ui/**', '**/storage/**'], message: 'Le moteur ne doit pas dépendre de l’interface ni du stockage.' },
+            { group: ['react', 'react-dom', 'react/*', 'react-dom/*'], message: 'Le moteur et le dossier ne doivent pas dépendre de React.' },
+            { group: ['**/ui/**', '**/storage/**'], message: 'Le moteur et le dossier ne doivent pas dépendre de l’interface ni du stockage.' },
           ],
         },
       ],

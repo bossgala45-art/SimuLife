@@ -49,6 +49,12 @@ describe('horloge', () => {
     const birth = { year: 2000, month: 3, day: 15 }
     expect(ageAt(birth, at(2025, 3, 14, 23, 59))).toBe(24)
     expect(ageAt(birth, at(2025, 3, 15))).toBe(25)
+    // Né un 29 février : un an de plus le 28 février des années non bissextiles.
+    const leap = { year: 2000, month: 2, day: 29 }
+    expect(ageAt(leap, at(2021, 2, 27))).toBe(20)
+    expect(ageAt(leap, at(2021, 2, 28))).toBe(21)
+    expect(ageAt(leap, at(2024, 2, 28))).toBe(23)
+    expect(ageAt(leap, at(2024, 2, 29))).toBe(24)
   })
 
   it('trouve la prochaine échéance strictement après une date', () => {

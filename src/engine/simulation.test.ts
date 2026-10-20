@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { WORK_BONUS, WORK_PAY } from './actions.ts'
+import { WORK_BONUS } from './actions.ts'
 import { SimulationError } from './errors.ts'
 import { NEED_IDS } from './needs.ts'
 import { parseState, serializeState } from './serialization.ts'
@@ -51,13 +51,15 @@ describe('exécution des actions', () => {
     expect(after.character.needs.hunger).toBeCloseTo(70 + 7.5 - 60)
   })
 
-  it('verse le salaire en fin de journée de travail', () => {
+  it('compte la journée de travail pour le salaire du mois', () => {
     const s = newLife({ start: dt(6, 8) })
     const r = performAction(s, 'work')
     const after = ok(r)
     expect(toCalendar(after.clock)).toMatchObject({ day: 6, hour: 16, minute: 0 })
+    expect(after.career.job!.daysWorked).toBe(s.career.job!.daysWorked + 1)
+    // Le salaire est versé le 1er du mois ; seule une éventuelle prime arrive tout de suite.
     const bonus = r.ok && r.entries.some((e) => e.code === 'work_bonus') ? WORK_BONUS : 0
-    expect(after.character.money).toBe(s.character.money + WORK_PAY + bonus)
+    expect(after.character.money).toBe(s.character.money + bonus)
   })
 
   it('n’exécute pas une action refusée et ne modifie jamais l’état reçu', () => {

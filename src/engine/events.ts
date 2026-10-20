@@ -7,11 +7,18 @@
  *
  * Les deux passent par le même registre de règles (`HANDLERS`).
  */
-import { invariant } from './errors.ts'
+import { AUTONOMY_HANDLERS } from './autonomy.ts'
+import { CAREER_HANDLERS } from './careers.ts'
+import { EDUCATION_HANDLERS } from './education.ts'
+import { addMoney, FINANCE_HANDLERS } from './finances.ts'
+import { INCIDENT_HANDLERS } from './incidents.ts'
 import { writeLog } from './journal.ts'
 import { clamp } from './needs.ts'
+import { scheduleEvent } from './schedule.ts'
 import { ageAt, MINUTES_PER_DAY, nextAnniversary, nextMonthlyOccurrence } from './time.ts'
 import type { GameEvent, GameEventType, SimulationState } from './types.ts'
+
+export { nextDueTime, scheduleEvent } from './schedule.ts'
 
 export const RENT_AMOUNT = 700
 export const RENT_DAY = 1
@@ -23,7 +30,7 @@ type Handler<T extends GameEventType> = (draft: SimulationState, event: Extract<
 
 const HANDLERS: { [T in GameEventType]: Handler<T> } = {
   rent_due(draft, event) {
-    draft.character.money -= event.amount
+    addMoney(draft, -event.amount, 'Loyer')
     writeLog(draft, 'event', 'rent_due', `Loyer prélevé : −${event.amount} €.`, { amount: event.amount })
     if (draft.character.money < 0) {
       writeLog(draft, 'warning', 'debt', `Compte à découvert : ${draft.character.money} €.`, {
@@ -55,7 +62,7 @@ const HANDLERS: { [T in GameEventType]: Handler<T> } = {
   },
 
   work_bonus(draft, event) {
-    draft.character.money += event.amount
+    addMoney(draft, event.amount, 'Prime')
     writeLog(draft, 'event', 'work_bonus', `Prime reçue pour ton travail : +${event.amount} €.`, { amount: event.amount })
   },
 
@@ -64,6 +71,13 @@ const HANDLERS: { [T in GameEventType]: Handler<T> } = {
     draft.character.needs.stress = clamp(draft.character.needs.stress - 5)
     writeLog(draft, 'event', 'friend_call', 'Un ami t’appelle pour prendre des nouvelles (humeur +10).')
   },
+
+  // Règles des modules sociaux et économiques.
+  ...FINANCE_HANDLERS,
+  ...CAREER_HANDLERS,
+  ...EDUCATION_HANDLERS,
+  ...AUTONOMY_HANDLERS,
+  ...INCIDENT_HANDLERS,
 }
 
 export const EVENT_TYPES = Object.keys(HANDLERS) as GameEventType[]
@@ -72,18 +86,6 @@ export const EVENT_TYPES = Object.keys(HANDLERS) as GameEventType[]
 export function triggerEvent(draft: SimulationState, event: GameEvent): void {
   const handler = HANDLERS[event.type] as Handler<typeof event.type>
   handler(draft, event)
-}
-
-/** Programme un événement à une date future (ou présente). */
-export function scheduleEvent(draft: SimulationState, at: number, event: GameEvent): void {
-  invariant(Number.isSafeInteger(at) && at >= draft.clock, `Événement « ${event.type} » programmé dans le passé.`)
-  draft.scheduled.push({ id: draft.nextEventId++, at, event })
-  // Ordre stable et reproductible : par date, puis par ordre de programmation.
-  draft.scheduled.sort((a, b) => a.at - b.at || a.id - b.id)
-}
-
-export function nextDueTime(draft: SimulationState): number | undefined {
-  return draft.scheduled[0]?.at
 }
 
 /** Applique, dans l'ordre, tous les événements dont la date est atteinte. */

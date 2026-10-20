@@ -1,0 +1,82 @@
+import { inCategory, LONG, YES_NO } from './helpers.ts'
+
+export const MILESTONES = inCategory('milestones', [
+  {
+    id: 'milestones.happiest',
+    type: 'text',
+    maxLength: LONG,
+    prompt: 'Quel est l’un des moments les plus heureux de ta vie ?',
+  },
+  {
+    id: 'milestones.happiest_date',
+    type: 'date',
+    prompt: 'Quand ce moment heureux a-t-il eu lieu ?',
+    condition: { answered: 'milestones.happiest' },
+    timeline: { label: 'Moment heureux', detailFrom: 'milestones.happiest' },
+  },
+  {
+    id: 'milestones.abroad',
+    type: 'single',
+    prompt: 'As-tu déjà voyagé à l’étranger ?',
+    options: YES_NO,
+  },
+  {
+    id: 'milestones.abroad_date',
+    type: 'date',
+    prompt: 'Quand as-tu fait ton premier voyage à l’étranger ?',
+    condition: { is: 'milestones.abroad', options: ['yes'] },
+    timeline: { label: 'Premier voyage à l’étranger' },
+  },
+  {
+    id: 'milestones.driving_license',
+    type: 'single',
+    prompt: 'As-tu le permis de conduire ?',
+    options: YES_NO,
+  },
+  {
+    id: 'milestones.driving_license_date',
+    type: 'date',
+    prompt: 'Quand as-tu obtenu ton permis de conduire ?',
+    condition: { is: 'milestones.driving_license', options: ['yes'] },
+    plausibleAge: [15, 80],
+    timeline: { label: 'Permis de conduire' },
+  },
+  {
+    id: 'milestones.turning_point',
+    type: 'text',
+    maxLength: LONG,
+    prompt: 'Quel événement a le plus changé le cours de ta vie ?',
+    help: 'Tu peux rester vague.',
+    sensitive: true,
+  },
+  {
+    id: 'milestones.turning_point_date',
+    type: 'date',
+    prompt: 'Quand cet événement s’est-il produit ?',
+    condition: { answered: 'milestones.turning_point' },
+    timeline: { label: 'Tournant de vie', detailFrom: 'milestones.turning_point' },
+  },
+  {
+    id: 'milestones.pride',
+    type: 'text',
+    maxLength: LONG,
+    prompt: 'De quelle réussite es-tu le plus fier ou la plus fière ?',
+  },
+  {
+    id: 'milestones.loss',
+    type: 'single',
+    prompt: 'As-tu perdu un proche qui comptait beaucoup pour toi ?',
+    help: 'Aucun détail n’est demandé. Tu peux ne pas répondre.',
+    sensitive: true,
+    options: YES_NO,
+  },
+  {
+    id: 'milestones.loss_date',
+    type: 'date',
+    prompt: 'Quand cette perte est-elle survenue ?',
+    help: 'Une année ou un âge approximatif suffit.',
+    sensitive: true,
+    condition: { is: 'milestones.loss', options: ['yes'] },
+    timeline: { label: 'Perte d’un proche' },
+  },
+])

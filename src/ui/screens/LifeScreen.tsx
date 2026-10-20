@@ -6,19 +6,21 @@ import {
   ageAt,
   dayNumber,
   formatDate,
-  formatDuration,
   formatTime,
   isCritical,
   NEED_IDS,
   NEEDS,
-  performAction,
-  validateAction,
+  type ActionId,
   type AttributeId,
   type LogEntry,
   type SimulationState,
   type StepResult,
   type TimeUnit,
 } from '../../engine/index.ts'
+import ActionButton from '../life/ActionButton.tsx'
+import MoneyPanel from '../life/MoneyPanel.tsx'
+import PathPanel from '../life/PathPanel.tsx'
+import PeoplePanel from '../life/PeoplePanel.tsx'
 import './LifeScreen.css'
 
 type LifeScreenProps = {
@@ -42,9 +44,21 @@ const ADVANCES: { unit: TimeUnit; label: string }[] = [
 
 const JOURNAL_SIZE = 60
 
+type Tab = 'life' | 'people' | 'path' | 'money'
+const TABS: { id: Tab; label: string }[] = [
+  { id: 'life', label: 'Vie' },
+  { id: 'people', label: 'Proches' },
+  { id: 'path', label: 'Parcours' },
+  { id: 'money', label: 'Argent' },
+]
+
+/** Actions du quotidien (sans cible) ; les autres sont dans leurs onglets. */
+const DAILY_ACTIONS = ACTION_IDS.filter((id) => !ACTIONS[id].params && id !== 'quit_job' && id !== 'drop_out') as ActionId[]
+
 export default function LifeScreen({ state, onChange, onQuit }: LifeScreenProps) {
   const [issues, setIssues] = useState<string[]>([])
   const [showWaits, setShowWaits] = useState(false)
+  const [tab, setTab] = useState<Tab>('life')
   const c = state.character
 
   function apply(result: StepResult) {
@@ -88,6 +102,20 @@ export default function LifeScreen({ state, onChange, onQuit }: LifeScreenProps)
           </p>
           <p className={c.money < 0 ? 'life__money life__money--neg' : 'life__money'}>{c.money} €</p>
         </div>
+        <nav className="tabs" role="tablist" aria-label="Sections">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              role="tab"
+              aria-selected={tab === t.id}
+              className={tab === t.id ? 'tabs__tab tabs__tab--on' : 'tabs__tab'}
+              onClick={() => setTab(t.id)}
+            >
+              {t.label}
+            </button>
+          ))}
+        </nav>
       </header>
 
       {!c.alive && (
@@ -96,6 +124,7 @@ export default function LifeScreen({ state, onChange, onQuit }: LifeScreenProps)
         </p>
       )}
       {c.statuses.includes('injured') && <p className="life__chip">Blessé·e</p>}
+      {c.statuses.includes('sick') && <p className="life__chip">Malade</p>}
       {issues.length > 0 && (
         <ul className="life__issues" role="alert">
           {issues.map((m) => (
@@ -104,112 +133,104 @@ export default function LifeScreen({ state, onChange, onQuit }: LifeScreenProps)
         </ul>
       )}
 
-      <section className="card" aria-labelledby="needs-title">
-        <h2 id="needs-title">Besoins</h2>
-        <ul className="needs">
-          {NEED_IDS.map((id) => {
-            const value = Math.round(c.needs[id])
-            const critical = isCritical(id, c.needs[id])
-            return (
-              <li key={id} className={critical ? 'need need--critical' : 'need'}>
-                <span className="need__label">{NEEDS[id].label}</span>
-                <span className="need__value">{value}</span>
-                <span
-                  className="need__bar"
-                  role="meter"
-                  aria-label={NEEDS[id].label}
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-valuenow={value}
-                >
-                  <span style={{ width: `${value}%` }} />
-                </span>
-              </li>
-            )
-          })}
-        </ul>
-        <p className="hint">Sommeil, faim, fatigue, stress : plus c’est bas, mieux c’est.</p>
-      </section>
+      {tab === 'people' && <PeoplePanel state={state} onResult={apply} />}
+      {tab === 'path' && <PathPanel state={state} onResult={apply} />}
+      {tab === 'money' && <MoneyPanel state={state} onResult={apply} />}
 
-      <section className="card" aria-labelledby="time-title">
-        <h2 id="time-title">Faire avancer la vie</h2>
-        <div className="advance">
-          {ADVANCES.map(({ unit, label }) => (
-            <button
-              key={unit}
-              type="button"
-              className="btn btn--secondary"
-              disabled={!c.alive}
-              onClick={() => apply(advance(state, unit))}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-        <p className="hint">Le personnage suit sa routine : dormir, manger, se laver, travailler…</p>
-      </section>
+      {tab === 'life' && (
+        <>
+          <section className="card" aria-labelledby="needs-title">
+            <h2 id="needs-title">Besoins</h2>
+            <ul className="needs">
+              {NEED_IDS.map((id) => {
+                const value = Math.round(c.needs[id])
+                const critical = isCritical(id, c.needs[id])
+                return (
+                  <li key={id} className={critical ? 'need need--critical' : 'need'}>
+                    <span className="need__label">{NEEDS[id].label}</span>
+                    <span className="need__value">{value}</span>
+                    <span
+                      className="need__bar"
+                      role="meter"
+                      aria-label={NEEDS[id].label}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-valuenow={value}
+                    >
+                      <span style={{ width: `${value}%` }} />
+                    </span>
+                  </li>
+                )
+              })}
+            </ul>
+            <p className="hint">Sommeil, faim, fatigue, stress : plus c’est bas, mieux c’est.</p>
+          </section>
 
-      <section className="card" aria-labelledby="actions-title">
-        <h2 id="actions-title">Actions</h2>
-        <ul className="actions">
-          {ACTION_IDS.map((id) => {
-            const def = ACTIONS[id]
-            const validation = validateAction(state, id)
-            return (
-              <li key={id}>
+          <section className="card" aria-labelledby="time-title">
+            <h2 id="time-title">Faire avancer la vie</h2>
+            <div className="advance">
+              {ADVANCES.map(({ unit, label }) => (
                 <button
+                  key={unit}
                   type="button"
-                  className="action"
-                  disabled={!validation.ok}
-                  onClick={() => apply(performAction(state, id))}
+                  className="btn btn--secondary"
+                  disabled={!c.alive}
+                  onClick={() => apply(advance(state, unit))}
                 >
-                  <span className="action__label">{def.label}</span>
-                  <span className="action__meta">
-                    {formatDuration(def.durationMinutes)}
-                    {def.cost.money > 0 && ` · ${def.cost.money} €`}
-                  </span>
-                  {!validation.ok && <span className="action__reason">{validation.issues[0].message}</span>}
+                  {label}
                 </button>
-              </li>
-            )
-          })}
-        </ul>
-      </section>
-
-      <section className="card" aria-labelledby="attr-title">
-        <h2 id="attr-title">Caractéristiques</h2>
-        <dl className="attributes">
-          {(Object.keys(ATTRIBUTES) as AttributeId[]).map((id) => (
-            <div key={id}>
-              <dt>{ATTRIBUTES[id]}</dt>
-              <dd>{Math.round(c.attributes[id])}</dd>
+              ))}
             </div>
-          ))}
-        </dl>
-      </section>
+            <p className="hint">Le personnage suit sa routine : dormir, manger, se laver, travailler…</p>
+          </section>
 
-      <section className="card" aria-labelledby="log-title">
-        <div className="card__head">
-          <h2 id="log-title">Journal</h2>
-          <label className="toggle">
-            <input type="checkbox" checked={showWaits} onChange={(e) => setShowWaits(e.target.checked)} />
-            Attentes
-          </label>
-        </div>
-        {journal.map(({ day, entries }) => (
-          <section key={day} className="journal__day" aria-label={formatDate(entries[0].at)}>
-            <h3>{formatDate(entries[0].at)}</h3>
-            <ol className="journal">
-              {entries.map((e) => (
-                <li key={e.seq} className={`journal__entry journal__entry--${e.kind}`}>
-                  <time>{formatTime(e.at)}</time>
-                  <span>{e.message}</span>
+          <section className="card" aria-labelledby="actions-title">
+            <h2 id="actions-title">Actions</h2>
+            <ul className="actions">
+              {DAILY_ACTIONS.map((id) => (
+                <li key={id}>
+                  <ActionButton state={state} action={id} onResult={apply} />
                 </li>
               ))}
-            </ol>
+            </ul>
           </section>
-        ))}
-      </section>
+
+          <section className="card" aria-labelledby="attr-title">
+            <h2 id="attr-title">Caractéristiques</h2>
+            <dl className="attributes">
+              {(Object.keys(ATTRIBUTES) as AttributeId[]).map((id) => (
+                <div key={id}>
+                  <dt>{ATTRIBUTES[id]}</dt>
+                  <dd>{Math.round(c.attributes[id])}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+
+          <section className="card" aria-labelledby="log-title">
+            <div className="card__head">
+              <h2 id="log-title">Journal</h2>
+              <label className="toggle">
+                <input type="checkbox" checked={showWaits} onChange={(e) => setShowWaits(e.target.checked)} />
+                Attentes
+              </label>
+            </div>
+            {journal.map(({ day, entries }) => (
+              <section key={day} className="journal__day" aria-label={formatDate(entries[0].at)}>
+                <h3>{formatDate(entries[0].at)}</h3>
+                <ol className="journal">
+                  {entries.map((e) => (
+                    <li key={e.seq} className={`journal__entry journal__entry--${e.kind}`}>
+                      <time>{formatTime(e.at)}</time>
+                      <span>{e.message}</span>
+                    </li>
+                  ))}
+                </ol>
+              </section>
+            ))}
+          </section>
+        </>
+      )}
 
       <footer className="life__footer">
         <p>

@@ -2,8 +2,9 @@
 
 Application web (installable sur iPhone) simulant des vies alternatives réalistes.
 
-**État actuel (mission 2) :** moteur de simulation (temps, besoins, actions,
-événements, hasard reproductible) et démonstration jouable sur plusieurs journées.
+**État actuel (mission 4) :** moteur de simulation jouable avec proches autonomes,
+relations et souvenirs, études et diplômes, compétences, métiers, revenus et dettes,
+imprévus ; dossier de vie (109 questions sur un objectif de 500) qui alimente la simulation.
 
 ## Prérequis
 
@@ -73,6 +74,59 @@ Garanties, couvertes par les tests :
 - **Fonctions pures** : `performAction` et `advance` renvoient un nouvel état et les
   entrées de journal produites, sans modifier l'état reçu.
 
+## Systèmes sociaux et économiques (`src/engine/`)
+
+| Fichier | Rôle |
+|---|---|
+| `people.ts` | Entourage (parents, frères et sœurs, amis, collègues), tiré de la graine ou du dossier |
+| `relationships.ts` | Proximité, confiance, tension ; souvenirs relationnels dont le poids s'estompe |
+| `autonomy.ts` | Vie des proches chaque nuit, sans le joueur : âge, retraite, maladie, déménagement, appels, anniversaires |
+| `social.ts` | Appeler, rendre visite, offrir, aider, demander un prêt |
+| `skills.ts` | 6 compétences, niveaux 0 à 10 |
+| `education.ts` | Inscription (rentrée, prérequis, frais), heures d'étude, examen différé, diplômes |
+| `careers.ts` / `requirements.ts` | Candidatures (réponse différée), paie au prorata, appréciation, absences, licenciement, chômage |
+| `finances.ts` | Compte, découvert, épargne, charges fixes, prêts (banque ou proches), relevé |
+| `incidents.ts` | Imprévus selon le contexte, avec délai avant répétition |
+| `data/careers.ts` | **Catalogues extensibles** : diplômes, formations, métiers (ajouter une entrée suffit) |
+| `data/economy.ts` | Valeurs économiques, toutes marquées **approximatives** |
+
+Règles vérifiées par les tests :
+
+- **Le hasard n'est jamais présenté comme certain** : toute action à issue aléatoire annonce ses
+  probabilités avant d'être choisie (« Embauche : ≈ 45 % ») ; le tirage n'a lieu qu'au moment du résultat.
+- **Les conséquences différées sont conservées** dans l'état (réponse de candidature, examen,
+  échéances de prêt, guérison d'un proche) et survivent à la sauvegarde.
+- **Âge, temps et contexte** : rentrée en septembre, banque en semaine, visites le jour,
+  âge minimal des métiers, retraite des proches à 64 ans.
+- **Données approximatives** : salaires, loyers, taux et allocations sont des ordres de grandeur
+  non vérifiés, signalés par « ≈ » dans l'interface.
+- Une sauvegarde de la version précédente (v1) est migrée automatiquement.
+
+## Dossier de vie (`src/dossier/`)
+
+TypeScript pur, comme le moteur (même règle ESLint d'isolation). API publique : `src/dossier/index.ts`.
+
+| Fichier | Rôle |
+|---|---|
+| `catalog/*.ts` | Questions, un fichier par catégorie (12 catégories) |
+| `questionnaire.ts` | Conditions, visibilité, validation et modification des réponses, progression, naissance et âge de départ |
+| `dates.ts` | Dates exactes ou approximatives (année, mois, jour, âge, « environ ») converties en intervalles |
+| `coherence.ts` | Contrôle chronologique : erreurs (impossible) et avertissements (inhabituel) |
+| `timeline.ts` | Chronologie personnelle construite à partir des faits déclarés |
+| `profile.ts` | Profil de départ : faits déclarés séparés des hypothèses simulées |
+| `setup.ts` | Passage à la simulation : entourage, diplômes, situation pro, compétences |
+| `serialization.ts` | Sauvegarde du dossier, vérifiée au chargement |
+
+Principes :
+
+- Chaque question accepte « Je ne sais pas » et « Je préfère ne pas répondre ».
+- Une réponse masquée par une condition est conservée mais ignorée ; elle revient si la condition redevient vraie.
+- Deux dates floues qui peuvent se chevaucher ne sont jamais déclarées incohérentes.
+- Une hypothèse simulée ne remplace jamais un fait déclaré ; chacune indique sa raison.
+- Aucune question sur la religion, la politique, l'orientation sexuelle, l'origine, les montants
+  d'argent, les diagnostics médicaux ou les coordonnées (vérifié par un test).
+- Le nombre de questions est vérifié par un test : il n'est annoncé que s'il est réel.
+
 ## Structure
 
 ```
@@ -83,10 +137,13 @@ Garanties, couvertes par les tests :
 │   ├── main.tsx              # point d'entrée React
 │   ├── app/App.tsx           # navigation entre écrans, sauvegarde automatique
 │   ├── engine/               # moteur de simulation (TS pur) + tests *.test.ts
-│   ├── storage/savegame.ts   # sauvegarde locale (localStorage)
+│   ├── dossier/              # dossier de vie (TS pur) : catalogue, questionnaire, chronologie
+│   ├── storage/              # sauvegardes locales (partie et dossier, localStorage)
 │   ├── ui/
 │   │   ├── platform.ts       # détection du mode « écran d'accueil »
 │   │   ├── seed.ts           # graine aléatoire proposée par défaut
+│   │   ├── dossier/          # écrans du dossier de vie (+ tests)
+│   │   ├── life/             # onglets Proches, Parcours, Argent (+ tests)
 │   │   └── screens/          # Accueil, Nouvelle vie, Vie (+ tests)
 │   ├── styles/global.css     # styles globaux, zones sûres iPhone
 │   └── test/setup.ts         # configuration Vitest
@@ -111,5 +168,6 @@ ESLint le vérifie automatiquement (`no-restricted-imports`).
 
 ## Données personnelles
 
-La partie est enregistrée uniquement sur l'appareil (`localStorage`, clé
-`simulife.save.v1`), après chaque action. Rien n'est envoyé à un serveur.
+La partie (`simulife.save.v1`) et le dossier de vie (`simulife.dossier.v1`) sont enregistrés
+uniquement sur l'appareil (`localStorage`), après chaque action ou réponse. Rien n'est envoyé
+à un serveur. Le dossier peut être effacé depuis son écran.
