@@ -1,0 +1,107 @@
+import { inCategory, LONG, SHORT, YES_NO } from './helpers.ts'
+
+const AFTER_HIGH_SCHOOL = ['bac2', 'bac5']
+
+export const SCHOOL = inCategory('school', [
+  {
+    id: 'school.primary_start',
+    type: 'date',
+    prompt: 'Quand es-tu entré·e à l’école primaire ?',
+    help: 'Une année ou un âge suffit.',
+    plausibleAge: [4, 9],
+    timeline: { label: 'Entrée à l’école primaire' },
+  },
+  {
+    id: 'school.feeling',
+    type: 'single',
+    prompt: 'Comment se passait l’école pour toi ?',
+    options: [
+      { id: 'great', label: 'Très bien' },
+      { id: 'good', label: 'Plutôt bien' },
+      { id: 'hard', label: 'Difficilement' },
+      { id: 'very_hard', label: 'Très difficilement' },
+    ],
+  },
+  {
+    id: 'school.favorite_subject',
+    type: 'single',
+    prompt: 'Quelle était ta matière préférée ?',
+    options: [
+      { id: 'french', label: 'Le français ou la littérature' },
+      { id: 'maths', label: 'Les mathématiques' },
+      { id: 'science', label: 'Les sciences' },
+      { id: 'history', label: 'L’histoire-géographie' },
+      { id: 'languages', label: 'Les langues étrangères' },
+      { id: 'sport', label: 'Le sport' },
+      { id: 'arts', label: 'Les arts ou la musique' },
+      { id: 'none', label: 'Aucune en particulier' },
+    ],
+  },
+  {
+    id: 'school.repeated',
+    type: 'single',
+    prompt: 'As-tu redoublé une classe ?',
+    options: YES_NO,
+  },
+  {
+    id: 'school.changes',
+    type: 'number',
+    min: 0,
+    max: 20,
+    prompt: 'Combien de fois as-tu changé d’établissement scolaire ?',
+  },
+  {
+    id: 'school.teacher',
+    type: 'text',
+    maxLength: LONG,
+    prompt: 'Quel souvenir gardes-tu d’un enseignant ou d’une enseignante qui t’a marqué·e ?',
+    help: 'Inutile de donner son nom.',
+  },
+  {
+    id: 'school.highest_level',
+    type: 'single',
+    prompt: 'Quel niveau d’études avais-tu atteint à l’âge de départ ?',
+    help: 'Si tu as étudié hors de France, choisis l’équivalent le plus proche.',
+    options: [
+      { id: 'primary', label: 'École primaire' },
+      { id: 'middle', label: 'Collège' },
+      { id: 'vocational', label: 'CAP ou BEP' },
+      { id: 'high_school', label: 'Lycée, sans le bac' },
+      { id: 'bac', label: 'Baccalauréat' },
+      { id: 'bac2', label: 'Bac +2 ou +3' },
+      { id: 'bac5', label: 'Bac +5 ou plus' },
+    ],
+  },
+  {
+    id: 'school.vocational_field',
+    type: 'text',
+    maxLength: SHORT,
+    prompt: 'À quel métier t’es-tu formé·e ?',
+    condition: { is: 'school.highest_level', options: ['vocational'] },
+  },
+  {
+    id: 'school.secondary_end',
+    type: 'date',
+    prompt: 'Quand as-tu quitté le lycée ?',
+    condition: { is: 'school.highest_level', options: ['high_school', 'bac', ...AFTER_HIGH_SCHOOL] },
+    after: ['school.primary_start'],
+    plausibleAge: [14, 22],
+    timeline: { label: 'Fin du lycée' },
+  },
+  {
+    id: 'school.higher_field',
+    type: 'text',
+    maxLength: SHORT,
+    prompt: 'Dans quel domaine as-tu fait tes études supérieures ?',
+    condition: { is: 'school.highest_level', options: AFTER_HIGH_SCHOOL },
+  },
+  {
+    id: 'school.higher_end',
+    type: 'date',
+    prompt: 'Quand as-tu terminé tes études supérieures ?',
+    condition: { is: 'school.highest_level', options: AFTER_HIGH_SCHOOL },
+    after: ['school.secondary_end'],
+    plausibleAge: [19, 35],
+    timeline: { label: 'Fin des études supérieures', detailFrom: 'school.higher_field' },
+  },
+])

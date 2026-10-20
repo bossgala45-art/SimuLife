@@ -2,8 +2,9 @@
 
 Application web (installable sur iPhone) simulant des vies alternatives réalistes.
 
-**État actuel (mission 2) :** moteur de simulation (temps, besoins, actions,
-événements, hasard reproductible) et démonstration jouable sur plusieurs journées.
+**État actuel (mission 3) :** moteur de simulation jouable, et dossier de vie
+(questionnaire pour reconstituer son histoire, puis démarrer une vie alternative à l'âge choisi).
+Catalogue actuel : **109 questions** sur un objectif de 500.
 
 ## Prérequis
 
@@ -73,6 +74,30 @@ Garanties, couvertes par les tests :
 - **Fonctions pures** : `performAction` et `advance` renvoient un nouvel état et les
   entrées de journal produites, sans modifier l'état reçu.
 
+## Dossier de vie (`src/dossier/`)
+
+TypeScript pur, comme le moteur (même règle ESLint d'isolation). API publique : `src/dossier/index.ts`.
+
+| Fichier | Rôle |
+|---|---|
+| `catalog/*.ts` | Questions, un fichier par catégorie (12 catégories) |
+| `questionnaire.ts` | Conditions, visibilité, validation et modification des réponses, progression, naissance et âge de départ |
+| `dates.ts` | Dates exactes ou approximatives (année, mois, jour, âge, « environ ») converties en intervalles |
+| `coherence.ts` | Contrôle chronologique : erreurs (impossible) et avertissements (inhabituel) |
+| `timeline.ts` | Chronologie personnelle construite à partir des faits déclarés |
+| `profile.ts` | Profil de départ : faits déclarés séparés des hypothèses simulées |
+| `serialization.ts` | Sauvegarde du dossier, vérifiée au chargement |
+
+Principes :
+
+- Chaque question accepte « Je ne sais pas » et « Je préfère ne pas répondre ».
+- Une réponse masquée par une condition est conservée mais ignorée ; elle revient si la condition redevient vraie.
+- Deux dates floues qui peuvent se chevaucher ne sont jamais déclarées incohérentes.
+- Une hypothèse simulée ne remplace jamais un fait déclaré ; chacune indique sa raison.
+- Aucune question sur la religion, la politique, l'orientation sexuelle, l'origine, les montants
+  d'argent, les diagnostics médicaux ou les coordonnées (vérifié par un test).
+- Le nombre de questions est vérifié par un test : il n'est annoncé que s'il est réel.
+
 ## Structure
 
 ```
@@ -83,10 +108,12 @@ Garanties, couvertes par les tests :
 │   ├── main.tsx              # point d'entrée React
 │   ├── app/App.tsx           # navigation entre écrans, sauvegarde automatique
 │   ├── engine/               # moteur de simulation (TS pur) + tests *.test.ts
-│   ├── storage/savegame.ts   # sauvegarde locale (localStorage)
+│   ├── dossier/              # dossier de vie (TS pur) : catalogue, questionnaire, chronologie
+│   ├── storage/              # sauvegardes locales (partie et dossier, localStorage)
 │   ├── ui/
 │   │   ├── platform.ts       # détection du mode « écran d'accueil »
 │   │   ├── seed.ts           # graine aléatoire proposée par défaut
+│   │   ├── dossier/          # écrans du dossier de vie (+ tests)
 │   │   └── screens/          # Accueil, Nouvelle vie, Vie (+ tests)
 │   ├── styles/global.css     # styles globaux, zones sûres iPhone
 │   └── test/setup.ts         # configuration Vitest
@@ -111,5 +138,6 @@ ESLint le vérifie automatiquement (`no-restricted-imports`).
 
 ## Données personnelles
 
-La partie est enregistrée uniquement sur l'appareil (`localStorage`, clé
-`simulife.save.v1`), après chaque action. Rien n'est envoyé à un serveur.
+La partie (`simulife.save.v1`) et le dossier de vie (`simulife.dossier.v1`) sont enregistrés
+uniquement sur l'appareil (`localStorage`), après chaque action ou réponse. Rien n'est envoyé
+à un serveur. Le dossier peut être effacé depuis son écran.

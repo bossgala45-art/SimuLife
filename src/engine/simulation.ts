@@ -33,7 +33,7 @@ import {
   nextMonthlyOccurrence,
   type TimeUnit,
 } from './time.ts'
-import type { CalendarDate, CalendarDateTime, LogEntry, SimulationState, ValidationIssue } from './types.ts'
+import type { Attributes, CalendarDate, CalendarDateTime, LogEntry, SimulationState, ValidationIssue } from './types.ts'
 
 export const DEFAULT_START: CalendarDateTime = { year: 2025, month: 1, day: 6, hour: 7, minute: 0 }
 export const DEFAULT_MONEY = 1000
@@ -48,6 +48,8 @@ export interface NewLifeOptions {
   birthDate: CalendarDate
   start?: CalendarDateTime
   money?: number
+  /** Caractéristiques imposées (par exemple issues du dossier de vie) ; les autres sont tirées au hasard. */
+  attributes?: Partial<Attributes>
 }
 
 export type StepResult = { ok: true; state: SimulationState; entries: LogEntry[] } | { ok: false; issues: ValidationIssue[] }
@@ -101,6 +103,13 @@ export function createSimulation(options: NewLifeOptions): SimulationState {
     fitness: roll(30, 70),
     intelligence: roll(30, 70),
     sociability: roll(30, 70),
+  }
+  for (const [id, value] of Object.entries(options.attributes ?? {})) {
+    const known = Object.hasOwn(state.character.attributes, id)
+    if (!known || typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > 100) {
+      throw new SimulationError('INVALID_ARGUMENT', `Caractéristique « ${id} » invalide : ${value} (0 à 100 attendu).`)
+    }
+    state.character.attributes[id as keyof Attributes] = value
   }
 
   scheduleEvent(state, nextMonthlyOccurrence(clock, RENT_DAY, RENT_HOUR), { type: 'rent_due', amount: RENT_AMOUNT })

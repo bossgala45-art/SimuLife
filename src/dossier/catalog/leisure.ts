@@ -1,0 +1,85 @@
+import { inCategory, LONG, SHORT, YES_NO } from './helpers.ts'
+
+const SPORTS = [
+  { id: 'football', label: 'Football' },
+  { id: 'basketball', label: 'Basket' },
+  { id: 'swimming', label: 'Natation' },
+  { id: 'dance', label: 'Danse' },
+  { id: 'martial_arts', label: 'Arts martiaux' },
+  { id: 'tennis', label: 'Tennis' },
+  { id: 'running', label: 'Course à pied' },
+  { id: 'cycling', label: 'Vélo' },
+  { id: 'gymnastics', label: 'Gymnastique' },
+  { id: 'other', label: 'Un autre sport' },
+]
+
+export const LEISURE = inCategory('leisure', [
+  {
+    id: 'leisure.sports',
+    type: 'multi',
+    prompt: 'Quels sports as-tu pratiqués régulièrement ?',
+    help: 'Plusieurs réponses possibles.',
+    options: [...SPORTS, { id: 'none', label: 'Aucun', exclusive: true }],
+  },
+  {
+    id: 'leisure.club',
+    type: 'single',
+    prompt: 'As-tu fait partie d’un club de sport ?',
+    condition: { includes: 'leisure.sports', options: SPORTS.map((s) => s.id) },
+    options: YES_NO,
+  },
+  {
+    id: 'leisure.club_start',
+    type: 'date',
+    prompt: 'Quand t’es-tu inscrit·e en club pour la première fois ?',
+    condition: { is: 'leisure.club', options: ['yes'] },
+    plausibleAge: [3, 60],
+    timeline: { label: 'Inscription dans un club de sport' },
+  },
+  {
+    id: 'leisure.competition',
+    type: 'single',
+    prompt: 'As-tu participé à des compétitions ?',
+    condition: { is: 'leisure.club', options: ['yes'] },
+    options: YES_NO,
+  },
+  {
+    id: 'leisure.hobbies',
+    type: 'multi',
+    prompt: 'Quels loisirs occupent ton temps libre ?',
+    help: 'Plusieurs réponses possibles.',
+    options: [
+      { id: 'reading', label: 'Lecture' },
+      { id: 'video_games', label: 'Jeux vidéo' },
+      { id: 'music', label: 'Musique' },
+      { id: 'drawing', label: 'Dessin ou peinture' },
+      { id: 'cooking', label: 'Cuisine' },
+      { id: 'diy', label: 'Bricolage' },
+      { id: 'nature', label: 'Balades et nature' },
+      { id: 'screen', label: 'Films et séries' },
+      { id: 'writing', label: 'Écriture' },
+      { id: 'other', label: 'Autre loisir' },
+    ],
+  },
+  {
+    id: 'leisure.music_detail',
+    type: 'text',
+    maxLength: SHORT,
+    prompt: 'Joues-tu d’un instrument, ou quel style de musique écoutes-tu le plus ?',
+    condition: { includes: 'leisure.hobbies', options: ['music'] },
+  },
+  {
+    id: 'leisure.weekly_hours',
+    type: 'number',
+    min: 0,
+    max: 80,
+    unit: 'heures',
+    prompt: 'Combien d’heures par semaine consacres-tu à tes loisirs ?',
+  },
+  {
+    id: 'leisure.best_holiday',
+    type: 'text',
+    maxLength: LONG,
+    prompt: 'Quelles ont été tes plus belles vacances ?',
+  },
+])
