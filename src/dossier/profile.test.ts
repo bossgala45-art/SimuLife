@@ -3,7 +3,7 @@ import { createSimulation } from '../engine/simulation.ts'
 import { ageAt } from '../engine/time.ts'
 import { QUESTIONNAIRE as Q } from './index.ts'
 import { buildProfile, type LifeProfile } from './profile.ts'
-import { answer, calendar, choice, configured, DECLINED, num, text, UNKNOWN } from './testing.ts'
+import { answer, calendar, choice, choices, configured, DECLINED, num, text, UNKNOWN } from './testing.ts'
 
 const fact = (p: LifeProfile | null, key: string) => p!.facts.find((f) => f.key === key)!
 
@@ -52,6 +52,45 @@ describe('faits déclarés et hypothèses simulées', () => {
     const p2 = buildProfile(Q, answer(Q, configured({ seed: 'graine' }), 'family.siblings_count', num(4)))!
     expect(p2.name).toBe(p1.name)
     expect(p2.attributes).toEqual(p1.attributes)
+  })
+
+  it('transmet à la simulation l’entourage, les diplômes, la situation et les compétences déclarés', () => {
+    let d = configured({ birth: calendar(1995, 6, 1), startAge: 28 })
+    d = answer(Q, d, 'family.household', choices('mother', 'grandparents'))
+    d = answer(Q, d, 'family.siblings_count', num(2))
+    d = answer(Q, d, 'family.atmosphere', choice('tense'))
+    d = answer(Q, d, 'relationships.group_size', choice('large'))
+    d = answer(Q, d, 'school.highest_level', choice('bac5'))
+    d = answer(Q, d, 'leisure.hobbies', choices('cooking', 'drawing'))
+    d = answer(Q, d, 'economy.situation', choice('searching'))
+    const p = buildProfile(Q, d)!
+    expect(p.setup).toEqual({
+      entourage: { parents: ['mother'], siblings: 2, familyCloseness: 35, familyTension: 45, friends: 4 },
+      career: null,
+      diplomas: ['bac', 'licence', 'master'],
+      skills: { cooking: 2, creativity: 2 },
+    })
+    for (const key of ['parents', 'familyClimate', 'friends', 'diplomas', 'situation', 'skills']) {
+      expect(fact(p, key).origin, key).toBe('declared')
+    }
+
+    const sim = createSimulation({ seed: d.seed, name: p.name, birthDate: p.birthDate, start: { ...p.startDate, hour: 7, minute: 0 }, ...p.setup })
+    expect(sim.people.filter((x) => x.role === 'parent').map((x) => x.relation)).toEqual(['Mère'])
+    expect(sim.people.filter((x) => x.role === 'sibling')).toHaveLength(2)
+    expect(sim.people.filter((x) => x.role === 'friend')).toHaveLength(4)
+    expect(sim.relationships[sim.people[0].id]).toMatchObject({ closeness: 35, tension: 45 })
+    expect(sim.education.diplomas.map((x) => x.id)).toEqual(['bac', 'licence', 'master'])
+    expect(sim.career.job).toBeNull()
+  })
+
+  it('sans réponse, l’entourage et l’emploi restent des hypothèses marquées', () => {
+    const p = buildProfile(Q, configured())!
+    expect(p.setup).toEqual({ entourage: {}, career: 'auto', diplomas: [], skills: {} })
+    for (const key of ['parents', 'familyClimate', 'friends', 'diplomas', 'situation', 'skills']) {
+      expect(fact(p, key)).toMatchObject({ origin: 'simulated', reason: 'unanswered' })
+    }
+    const sim = createSimulation({ seed: 'x', name: p.name, birthDate: p.birthDate, start: { ...p.startDate, hour: 7, minute: 0 }, ...p.setup })
+    expect(sim.career.job).not.toBeNull()
   })
 
   it('permet de démarrer la simulation à l’âge choisi', () => {

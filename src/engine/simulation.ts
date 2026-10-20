@@ -4,7 +4,11 @@
  * Les fonctions publiques ne modifient jamais l'état reçu : elles travaillent
  * sur une copie et renvoient le nouvel état. Même état + même action = même résultat.
  */
-import { ACTIONS, validateAction, type ActionDefinition } from './actions.ts'
+import { actionCost, ACTIONS, validateAction, type ActionDefinition } from './actions.ts'
+import { npcDailyUpdate } from './autonomy.ts'
+import { checkAbsence, emptyCareer, PAYDAY, PAYDAY_HOUR, startJob } from './careers.ts'
+import { findCareer, findDiploma } from './data/careers.ts'
+import { emptyEducation } from './education.ts'
 import { invariant, SimulationError } from './errors.ts'
 import {
   BIRTHDAY_HOUR,
@@ -14,11 +18,15 @@ import {
   RENT_DAY,
   RENT_HOUR,
   scheduleEvent,
-  triggerEvent,
 } from './events.ts'
+import { accrueOverdraft, addMoney, BILLS_DAY, BILLS_HOUR, initialFinances } from './finances.ts'
+import { dailyIncidents } from './incidents.ts'
+import { createEntourage, type Entourage } from './people.ts'
+import { eligibleCareers } from './requirements.ts'
+import { emptySkills, isSkillId, MAX_LEVEL, xpForLevel } from './skills.ts'
 import { writeLog } from './journal.ts'
 import { applyTimeToNeeds, clamp, isCritical, NEED_IDS, NEEDS, type Activity } from './needs.ts'
-import { chance, drawRandom, hashSeed } from './rng.ts'
+import { drawRandom, hashSeed } from './rng.ts'
 import { chooseRoutineAction } from './routine.ts'
 import {
   addDuration,
@@ -33,14 +41,24 @@ import {
   nextMonthlyOccurrence,
   type TimeUnit,
 } from './time.ts'
-import type { Attributes, CalendarDate, CalendarDateTime, LogEntry, SimulationState, ValidationIssue } from './types.ts'
+import type {
+  ActionParams,
+  Attributes,
+  CalendarDate,
+  CalendarDateTime,
+  LogEntry,
+  SimulationState,
+  SkillId,
+  ValidationIssue,
+} from './types.ts'
 
 export const DEFAULT_START: CalendarDateTime = { year: 2025, month: 1, day: 6, hour: 7, minute: 0 }
 export const DEFAULT_MONEY = 1000
 export const ADULT_AGE = 18
 /** Pas de simulation maximal : les besoins sont recalculés au moins tous les quarts d'heure. */
 export const TICK_MINUTES = 15
-export const FRIEND_CALL_CHANCE = 0.08
+/** Emploi de départ d'une vie créée sans dossier. */
+export const DEFAULT_CAREER = 'cashier'
 
 export interface NewLifeOptions {
   seed: string
@@ -50,6 +68,13 @@ export interface NewLifeOptions {
   money?: number
   /** Caractéristiques imposées (par exemple issues du dossier de vie) ; les autres sont tirées au hasard. */
   attributes?: Partial<Attributes>
+  /** Composition de l'entourage (famille, amis) ; tirée au hasard si absente. */
+  entourage?: Entourage
+  /** Emploi au départ : identifiant, 'auto' (le mieux payé parmi les métiers accessibles) ou `null`. */
+  career?: string | null
+  diplomas?: string[]
+  /** Niveaux de compétence de départ. */
+  skills?: Partial<Record<SkillId, number>>
 }
 
 export type StepResult = { ok: true; state: SimulationState; entries: LogEntry[] } | { ok: false; issues: ValidationIssue[] }
@@ -76,7 +101,7 @@ export function createSimulation(options: NewLifeOptions): SimulationState {
   }
 
   const state: SimulationState = {
-    version: 1,
+    version: 2,
     seed,
     rngState: hashSeed(seed),
     clock,
@@ -94,6 +119,14 @@ export function createSimulation(options: NewLifeOptions): SimulationState {
     nextEventId: 1,
     log: [],
     nextLogSeq: 1,
+    people: [],
+    relationships: {},
+    nextPersonId: 1,
+    skills: emptySkills(),
+    education: emptyEducation(),
+    career: emptyCareer(),
+    finances: initialFinances(),
+    cooldowns: {},
   }
 
   // Caractéristiques de départ tirées à partir de la graine.
@@ -112,20 +145,42 @@ export function createSimulation(options: NewLifeOptions): SimulationState {
     state.character.attributes[id as keyof Attributes] = value
   }
 
+  for (const id of options.diplomas ?? []) {
+    if (!findDiploma(id)) throw new SimulationError('INVALID_ARGUMENT', `Diplôme inconnu : « ${id} ».`)
+    state.education.diplomas.push({ id, at: null })
+  }
+  for (const [skill, level] of Object.entries(options.skills ?? {})) {
+    if (!isSkillId(skill) || !Number.isInteger(level) || level < 0 || level > MAX_LEVEL) {
+      throw new SimulationError('INVALID_ARGUMENT', `Compétence « ${skill} » invalide : niveau ${level}.`)
+    }
+    state.skills[skill] = xpForLevel(level)
+  }
+  createEntourage(state, options.entourage)
+  let career = options.career === undefined ? DEFAULT_CAREER : options.career
+  if (career === 'auto') {
+    career = [...eligibleCareers(state)].sort((a, b) => b.salary.max - a.salary.max)[0]?.id ?? DEFAULT_CAREER
+  }
+  if (career !== null) {
+    if (!findCareer(career)) throw new SimulationError('INVALID_ARGUMENT', `Métier inconnu : « ${career} ».`)
+    startJob(state, career)
+  }
+
   scheduleEvent(state, nextMonthlyOccurrence(clock, RENT_DAY, RENT_HOUR), { type: 'rent_due', amount: RENT_AMOUNT })
   scheduleEvent(state, nextAnniversary(clock, options.birthDate, BIRTHDAY_HOUR), { type: 'birthday' })
+  scheduleEvent(state, nextMonthlyOccurrence(clock, PAYDAY, PAYDAY_HOUR), { type: 'payday' })
+  scheduleEvent(state, nextMonthlyOccurrence(clock, BILLS_DAY, BILLS_HOUR), { type: 'bills_due' })
   writeLog(state, 'system', 'life_started', `Début de la vie de ${name}, ${ageAt(options.birthDate, clock)} ans (graine « ${seed} »).`)
   return state
 }
 
 /** Exécute une action du catalogue après validation. Une action refusée ne modifie rien. */
-export function performAction(state: SimulationState, actionId: string): StepResult {
-  const validation = validateAction(state, actionId)
+export function performAction(state: SimulationState, actionId: string, params: ActionParams = {}): StepResult {
+  const validation = validateAction(state, actionId, params)
   if (!validation.ok) return validation
   const draft = structuredClone(state)
-  const before = draft.log.length
-  executeAction(draft, ACTIONS[actionId as keyof typeof ACTIONS])
-  return { ok: true, state: draft, entries: draft.log.slice(before) }
+  const firstSeq = draft.nextLogSeq
+  executeAction(draft, ACTIONS[actionId as keyof typeof ACTIONS], params)
+  return { ok: true, state: draft, entries: draft.log.filter((e) => e.seq >= firstSeq) }
 }
 
 /**
@@ -140,23 +195,23 @@ export function advance(state: SimulationState, unit: TimeUnit, amount = 1): Ste
     return { ok: false, issues: [{ code: 'CHARACTER_DEAD', message: `${state.character.name} est décédé·e.` }] }
   }
   const draft = structuredClone(state)
-  const before = draft.log.length
+  const firstSeq = draft.nextLogSeq
   while (draft.clock < target && draft.character.alive) {
     const previous = draft.clock
-    const def = chooseRoutineAction(draft, target)
-    executeAction(draft, def, target)
+    const { def, params } = chooseRoutineAction(draft, target)
+    executeAction(draft, def, params, target)
     invariant(draft.clock > previous || !draft.character.alive, 'La routine n’a pas fait avancer le temps.')
   }
   invariant(draft.clock <= target, 'La routine a dépassé la date visée.')
-  return { ok: true, state: draft, entries: draft.log.slice(before) }
+  return { ok: true, state: draft, entries: draft.log.filter((e) => e.seq >= firstSeq) }
 }
 
 /**
  * Exécute une action déjà validée sur le brouillon.
  * Si `limit` est fourni, une action interruptible s'arrête à cette date.
  */
-function executeAction(draft: SimulationState, def: ActionDefinition, limit?: number): void {
-  invariant(validateAction(draft, def.id).ok, `Action « ${def.id} » exécutée sans être valide.`)
+function executeAction(draft: SimulationState, def: ActionDefinition, params: ActionParams, limit?: number): void {
+  invariant(validateAction(draft, def.id, params).ok, `Action « ${def.id} » exécutée sans être valide.`)
   let duration = def.durationMinutes
   if (limit !== undefined && draft.clock + duration > limit) {
     invariant(def.interruptible, `Action « ${def.id} » non interruptible lancée trop tard.`)
@@ -164,13 +219,15 @@ function executeAction(draft: SimulationState, def: ActionDefinition, limit?: nu
   }
   const interrupted = duration < def.durationMinutes
 
-  draft.character.money -= def.cost.money
+  const cost = actionCost(draft, def, params)
+  addMoney(draft, -cost, def.label)
+  const target = params.personId ? draft.people.find((p) => p.id === params.personId)?.name : undefined
   writeLog(
     draft,
     'action',
     def.id,
-    `${def.label} (${formatDuration(duration)}${def.cost.money > 0 ? `, −${def.cost.money} €` : ''})`,
-    { action: def.id, duration, cost: def.cost.money, interrupted },
+    `${def.label}${target ? ` — ${target}` : ''} (${formatDuration(duration)}${cost > 0 ? `, −${cost} €` : ''})`,
+    { action: def.id, duration, cost, interrupted },
   )
 
   simulateSpan(draft, duration, { sleeping: def.sleeping, rates: def.ratesPerHour })
@@ -183,8 +240,8 @@ function executeAction(draft: SimulationState, def: ActionDefinition, limit?: nu
   for (const [id, delta] of Object.entries(def.effects.attributes ?? {})) {
     c.attributes[id as keyof typeof c.attributes] = clamp(c.attributes[id as keyof typeof c.attributes] + delta)
   }
-  c.money += def.effects.money ?? 0
-  def.onComplete?.(draft)
+  addMoney(draft, def.effects.money ?? 0, def.label)
+  def.onComplete?.(draft, params)
 }
 
 /**
@@ -225,5 +282,9 @@ function simulateSpan(draft: SimulationState, minutes: number, activity: Activit
 
 function startNewDay(draft: SimulationState): void {
   writeLog(draft, 'day', 'new_day', `Nouvelle journée : ${formatDate(draft.clock)}.`)
-  if (chance(draft, FRIEND_CALL_CHANCE)) triggerEvent(draft, { type: 'friend_call' })
+  // Systèmes qui évoluent sans le joueur.
+  checkAbsence(draft)
+  accrueOverdraft(draft)
+  npcDailyUpdate(draft)
+  dailyIncidents(draft)
 }

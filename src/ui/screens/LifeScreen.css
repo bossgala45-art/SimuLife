@@ -309,3 +309,293 @@
 .life__footer .btn {
   width: auto;
 }
+
+/* ——— Onglets ——— */
+
+.tabs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  flex-basis: 100%;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--color-surface);
+}
+
+.life__header {
+  flex-wrap: wrap;
+}
+
+.tabs__tab {
+  min-height: 40px;
+  border: 0;
+  border-radius: 9px;
+  background: none;
+  color: var(--color-muted);
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.tabs__tab--on {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+/* ——— Éléments partagés des onglets ——— */
+
+.action__chance {
+  grid-column: 1 / -1;
+  margin-top: 2px;
+  color: #c9b8ff;
+  font-size: 0.8125rem;
+}
+
+.big {
+  margin: 0 0 8px;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.subtitle,
+.person__subtitle {
+  margin: 14px 0 6px;
+  font-size: 0.9375rem;
+}
+
+.plain {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.neg {
+  color: var(--color-danger);
+}
+
+.pos {
+  color: var(--color-accent-2);
+}
+
+.facts-list {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 12px;
+}
+
+.facts-list div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.facts-list dt {
+  color: var(--color-muted);
+}
+
+.facts-list dd {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.gauge {
+  display: grid;
+  grid-template-columns: 6.5em 1fr 2.5em;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0;
+  font-size: 0.875rem;
+}
+
+.gauge__bar {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--color-bg);
+  overflow: hidden;
+}
+
+.gauge__bar > span {
+  display: block;
+  height: 100%;
+  background: var(--color-accent-2);
+}
+
+.gauge--inverse .gauge__bar > span {
+  background: var(--color-warning);
+}
+
+.gauge__value {
+  color: var(--color-muted);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* ——— Proches ——— */
+
+.people {
+  display: grid;
+  gap: 8px;
+}
+
+.person {
+  border-radius: 12px;
+  background: var(--color-bg);
+}
+
+.person summary {
+  display: grid;
+  gap: 2px;
+  padding: 12px 14px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.person summary::-webkit-details-marker {
+  display: none;
+}
+
+.person__name {
+  font-weight: 600;
+}
+
+.person__relation,
+.person__meta {
+  color: var(--color-muted);
+  font-weight: 400;
+  font-size: 0.875rem;
+}
+
+.person__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgb(255 176 32 / 0.15);
+  color: var(--color-warning);
+  font-size: 0.75rem;
+}
+
+.person__body {
+  padding: 0 14px 14px;
+}
+
+.person__body .action {
+  background: var(--color-surface);
+}
+
+.memories {
+  display: grid;
+  gap: 4px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+  font-size: 0.875rem;
+}
+
+.memory {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.memory time {
+  flex-shrink: 0;
+  color: var(--color-muted);
+  font-size: 0.75rem;
+}
+
+.memory--good span {
+  color: var(--color-accent-2);
+}
+
+.memory--bad span {
+  color: var(--color-danger);
+}
+
+/* ——— Parcours ——— */
+
+.skills,
+.catalog {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.catalog__item {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--color-bg);
+}
+
+.catalog__item .hint {
+  margin: 0;
+}
+
+.catalog__item .action {
+  background: var(--color-surface);
+}
+
+.catalog__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.catalog__ok,
+.catalog__ko {
+  margin: 0;
+  font-size: 0.8125rem;
+}
+
+.catalog__ok {
+  color: var(--color-accent-2);
+}
+
+.catalog__ko {
+  color: var(--color-warning);
+}
+
+/* ——— Argent ——— */
+
+.ledger {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.875rem;
+}
+
+.ledger li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ledger time {
+  display: block;
+  color: var(--color-muted);
+  font-size: 0.75rem;
+}
+
+.ledger li > span:last-child {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.skills .gauge {
+  grid-template-columns: 11em 1fr;
+}

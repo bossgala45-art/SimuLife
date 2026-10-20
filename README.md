@@ -2,9 +2,9 @@
 
 Application web (installable sur iPhone) simulant des vies alternatives réalistes.
 
-**État actuel (mission 3) :** moteur de simulation jouable, et dossier de vie
-(questionnaire pour reconstituer son histoire, puis démarrer une vie alternative à l'âge choisi).
-Catalogue actuel : **109 questions** sur un objectif de 500.
+**État actuel (mission 4) :** moteur de simulation jouable avec proches autonomes,
+relations et souvenirs, études et diplômes, compétences, métiers, revenus et dettes,
+imprévus ; dossier de vie (109 questions sur un objectif de 500) qui alimente la simulation.
 
 ## Prérequis
 
@@ -74,6 +74,34 @@ Garanties, couvertes par les tests :
 - **Fonctions pures** : `performAction` et `advance` renvoient un nouvel état et les
   entrées de journal produites, sans modifier l'état reçu.
 
+## Systèmes sociaux et économiques (`src/engine/`)
+
+| Fichier | Rôle |
+|---|---|
+| `people.ts` | Entourage (parents, frères et sœurs, amis, collègues), tiré de la graine ou du dossier |
+| `relationships.ts` | Proximité, confiance, tension ; souvenirs relationnels dont le poids s'estompe |
+| `autonomy.ts` | Vie des proches chaque nuit, sans le joueur : âge, retraite, maladie, déménagement, appels, anniversaires |
+| `social.ts` | Appeler, rendre visite, offrir, aider, demander un prêt |
+| `skills.ts` | 6 compétences, niveaux 0 à 10 |
+| `education.ts` | Inscription (rentrée, prérequis, frais), heures d'étude, examen différé, diplômes |
+| `careers.ts` / `requirements.ts` | Candidatures (réponse différée), paie au prorata, appréciation, absences, licenciement, chômage |
+| `finances.ts` | Compte, découvert, épargne, charges fixes, prêts (banque ou proches), relevé |
+| `incidents.ts` | Imprévus selon le contexte, avec délai avant répétition |
+| `data/careers.ts` | **Catalogues extensibles** : diplômes, formations, métiers (ajouter une entrée suffit) |
+| `data/economy.ts` | Valeurs économiques, toutes marquées **approximatives** |
+
+Règles vérifiées par les tests :
+
+- **Le hasard n'est jamais présenté comme certain** : toute action à issue aléatoire annonce ses
+  probabilités avant d'être choisie (« Embauche : ≈ 45 % ») ; le tirage n'a lieu qu'au moment du résultat.
+- **Les conséquences différées sont conservées** dans l'état (réponse de candidature, examen,
+  échéances de prêt, guérison d'un proche) et survivent à la sauvegarde.
+- **Âge, temps et contexte** : rentrée en septembre, banque en semaine, visites le jour,
+  âge minimal des métiers, retraite des proches à 64 ans.
+- **Données approximatives** : salaires, loyers, taux et allocations sont des ordres de grandeur
+  non vérifiés, signalés par « ≈ » dans l'interface.
+- Une sauvegarde de la version précédente (v1) est migrée automatiquement.
+
 ## Dossier de vie (`src/dossier/`)
 
 TypeScript pur, comme le moteur (même règle ESLint d'isolation). API publique : `src/dossier/index.ts`.
@@ -86,6 +114,7 @@ TypeScript pur, comme le moteur (même règle ESLint d'isolation). API publique 
 | `coherence.ts` | Contrôle chronologique : erreurs (impossible) et avertissements (inhabituel) |
 | `timeline.ts` | Chronologie personnelle construite à partir des faits déclarés |
 | `profile.ts` | Profil de départ : faits déclarés séparés des hypothèses simulées |
+| `setup.ts` | Passage à la simulation : entourage, diplômes, situation pro, compétences |
 | `serialization.ts` | Sauvegarde du dossier, vérifiée au chargement |
 
 Principes :
@@ -114,6 +143,7 @@ Principes :
 │   │   ├── platform.ts       # détection du mode « écran d'accueil »
 │   │   ├── seed.ts           # graine aléatoire proposée par défaut
 │   │   ├── dossier/          # écrans du dossier de vie (+ tests)
+│   │   ├── life/             # onglets Proches, Parcours, Argent (+ tests)
 │   │   └── screens/          # Accueil, Nouvelle vie, Vie (+ tests)
 │   ├── styles/global.css     # styles globaux, zones sûres iPhone
 │   └── test/setup.ts         # configuration Vitest

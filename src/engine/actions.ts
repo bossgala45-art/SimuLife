@@ -4,64 +4,29 @@
  * Chaque action déclare sa durée, son coût, ses préconditions et ses effets.
  * `validateAction` vérifie TOUTES les préconditions et renvoie la liste
  * complète des raisons de refus : une action refusée n'est jamais exécutée.
+ * Les actions des modules sociaux et économiques sont ajoutées au même catalogue.
  */
+import { BASE, notSick, notTooTired, opensBetween, type ActionDefinition, type Outcome } from './actionKit.ts'
+import { CAREER_ACTIONS, workDay } from './careers.ts'
+import { findCareer, findProgram } from './data/careers.ts'
+import { EDUCATION_ACTIONS, studySession } from './education.ts'
 import { triggerEvent } from './events.ts'
+import { available, FINANCE_ACTIONS } from './finances.ts'
+import { findPerson } from './relationships.ts'
 import { chance } from './rng.ts'
-import type { NeedRates } from './needs.ts'
+import { gainXp, isSkillId } from './skills.ts'
+import { SOCIAL_ACTIONS } from './social.ts'
 import { dayNumber, toCalendar } from './time.ts'
-import type { ActionId, Attributes, Needs, SimulationState, ValidationCode, ValidationIssue } from './types.ts'
+import type { ActionId, ActionParams, SimulationState, ValidationIssue } from './types.ts'
 
-export interface ActionEffects {
-  needs?: Partial<Needs>
-  attributes?: Partial<Attributes>
-  money?: number
-}
+export type { ActionDefinition, ActionEffects, Outcome, ParamKind, Precondition } from './actionKit.ts'
 
-export interface Precondition {
-  code: ValidationCode
-  /** Vrai si la précondition est remplie. */
-  test: (state: SimulationState) => boolean
-  message: string
-}
-
-export interface ActionDefinition {
-  id: ActionId
-  label: string
-  description: string
-  durationMinutes: number
-  cost: { money: number }
-  /** Peut être écourtée (par exemple quand on avance jusqu'à une heure précise). */
-  interruptible: boolean
-  sleeping: boolean
-  /** Variations par heure pendant l'action, en plus de l'évolution normale. */
-  ratesPerHour: NeedRates
-  /** Effets appliqués à la fin de l'action. */
-  effects: ActionEffects
-  preconditions: Precondition[]
-  /** Règles complémentaires en fin d'action (tirages aléatoires, bonus liés aux caractéristiques…). */
-  onComplete?: (draft: SimulationState) => void
-}
-
-export const WORK_PAY = 120
 export const WORK_BONUS = 80
 export const WORK_BONUS_CHANCE = 0.05
 export const SPORT_INJURY_CHANCE = 0.04
 
 const hourOf = (s: SimulationState) => toCalendar(s.clock).hour
 const needs = (s: SimulationState) => s.character.needs
-
-/** Heure de début comprise dans [from, to[ */
-const opensBetween = (from: number, to: number, message: string): Precondition => ({
-  code: 'CLOSED',
-  test: (s) => hourOf(s) >= from && hourOf(s) < to,
-  message,
-})
-
-const notTooTired = (max: number): Precondition => ({
-  code: 'TOO_TIRED',
-  test: (s) => needs(s).fatigue < max,
-  message: `Trop fatigué (fatigue ${max} ou plus).`,
-})
 
 const ACTION_LIST: ActionDefinition[] = [
   {
@@ -87,6 +52,24 @@ const ACTION_LIST: ActionDefinition[] = [
     ratesPerHour: {},
     effects: { needs: { hunger: -55, mood: 2 } },
     preconditions: [{ code: 'NOT_HUNGRY', test: (s) => needs(s).hunger >= 25, message: 'Pas faim (faim < 25).' }],
+    onComplete: (draft) => gainXp(draft, 'cooking', 1),
+  },
+  {
+    ...BASE,
+    id: 'food_aid',
+    label: 'Repas d’une aide alimentaire',
+    description: 'Repas gratuit auprès d’une association, quand il n’y a plus de quoi payer.',
+    durationMinutes: 90,
+    effects: { needs: { hunger: -45, mood: -3 } },
+    preconditions: [
+      { code: 'NOT_HUNGRY', test: (s) => needs(s).hunger >= 25, message: 'Pas faim (faim < 25).' },
+      {
+        code: 'NOT_NEEDED',
+        test: (s) => available(s) < ACTIONS.cook_meal.cost.money,
+        message: 'Réservé aux personnes qui ne peuvent plus payer un repas.',
+      },
+      opensBetween(11, 19, 'Distribution entre 11 h et 19 h.'),
+    ],
   },
   {
     id: 'restaurant',
@@ -118,14 +101,16 @@ const ACTION_LIST: ActionDefinition[] = [
   {
     id: 'work',
     label: 'Travailler',
-    description: `Une journée de travail de 8 h, payée ${WORK_PAY} €.`,
+    description: 'Une journée de travail de 8 h, comptée pour le salaire du mois.',
     durationMinutes: 8 * 60,
     cost: { money: 0 },
     interruptible: false,
     sleeping: false,
     ratesPerHour: { fatigue: 2, stress: 3, hygiene: -1 },
-    effects: { money: WORK_PAY },
+    effects: {},
     preconditions: [
+      { code: 'NO_JOB', test: (s) => s.career.job !== null, message: 'Tu n’as pas d’emploi : postule à un métier.' },
+      notSick,
       { code: 'NOT_A_WORKDAY', test: (s) => toCalendar(s.clock).weekday < 5, message: 'Pas de travail le week-end.' },
       {
         code: 'OUTSIDE_WORK_HOURS',
@@ -141,8 +126,9 @@ const ACTION_LIST: ActionDefinition[] = [
       { code: 'TOO_SLEEPY', test: (s) => needs(s).sleep < 85, message: 'Trop sommeil pour travailler (sommeil 85 ou plus).' },
       { code: 'TOO_DIRTY', test: (s) => needs(s).hygiene >= 15, message: 'Trop sale pour aller travailler (hygiène < 15).' },
     ],
+    outcomes: () => [{ label: 'Prime', probability: WORK_BONUS_CHANCE }],
     onComplete(draft) {
-      draft.character.lastWorkDay = dayNumber(draft.clock)
+      workDay(draft)
       if (chance(draft, WORK_BONUS_CHANCE)) triggerEvent(draft, { type: 'work_bonus', amount: WORK_BONUS })
     },
   },
@@ -158,9 +144,11 @@ const ACTION_LIST: ActionDefinition[] = [
     effects: { needs: { fatigue: 18, stress: -15, hygiene: -25, mood: 6 }, attributes: { fitness: 0.4 } },
     preconditions: [
       { code: 'INJURED', test: (s) => !s.character.statuses.includes('injured'), message: 'Blessé : sport impossible.' },
+      notSick,
       notTooTired(70),
       { code: 'TOO_HUNGRY', test: (s) => needs(s).hunger < 85, message: 'Trop faim pour faire du sport (faim 85 ou plus).' },
     ],
+    outcomes: () => [{ label: 'Blessure', probability: SPORT_INJURY_CHANCE }],
     onComplete(draft) {
       if (chance(draft, SPORT_INJURY_CHANCE)) triggerEvent(draft, { type: 'sport_injury' })
     },
@@ -179,6 +167,7 @@ const ACTION_LIST: ActionDefinition[] = [
       notTooTired(80),
       { code: 'TOO_SLEEPY', test: (s) => needs(s).sleep < 80, message: 'Trop sommeil pour étudier (sommeil 80 ou plus).' },
     ],
+    onComplete: studySession,
   },
   {
     id: 'friends',
@@ -221,6 +210,22 @@ const ACTION_LIST: ActionDefinition[] = [
     effects: {},
     preconditions: [],
   },
+  {
+    ...BASE,
+    id: 'practice',
+    label: 'S’entraîner',
+    description: 'Une heure d’entraînement pour progresser dans une compétence.',
+    durationMinutes: 60,
+    params: ['skill'],
+    extraCost: (_s, p) => (p.skill === 'cooking' ? 5 : 0),
+    effects: { needs: { fatigue: 4 } },
+    preconditions: [opensBetween(7, 23, 'Entraînement entre 7 h et 23 h.'), notTooTired(85), notSick],
+    onComplete: (draft, p) => gainXp(draft, p.skill!, 10),
+  },
+  ...SOCIAL_ACTIONS,
+  ...CAREER_ACTIONS,
+  ...EDUCATION_ACTIONS,
+  ...FINANCE_ACTIONS,
 ]
 
 export const ACTIONS: Readonly<Record<ActionId, ActionDefinition>> = Object.fromEntries(
@@ -235,7 +240,44 @@ export function isActionId(value: unknown): value is ActionId {
 
 export type ValidationResult = { ok: true } | { ok: false; issues: ValidationIssue[] }
 
-export function validateAction(state: SimulationState, actionId: string): ValidationResult {
+/** Coût total d'une action (prix fixe + frais selon les paramètres). */
+export function actionCost(state: SimulationState, def: ActionDefinition, params: ActionParams = {}): number {
+  return def.cost.money + (def.extraCost?.(state, params) ?? 0)
+}
+
+/** Paramètre manquant ou invalide : raison précise, sinon `null`. */
+function paramIssue(state: SimulationState, def: ActionDefinition, params: ActionParams): ValidationIssue | null {
+  for (const kind of def.params ?? []) {
+    switch (kind) {
+      case 'person': {
+        if (!params.personId) return { code: 'MISSING_PARAM', message: 'Choisis une personne.' }
+        const person = findPerson(state, params.personId)
+        if (!person) return { code: 'UNKNOWN_PERSON', message: `Personne inconnue : « ${params.personId} ».` }
+        if (!person.alive) return { code: 'PERSON_UNAVAILABLE', message: `${person.name} est décédé·e.` }
+        break
+      }
+      case 'career':
+        if (!params.career) return { code: 'MISSING_PARAM', message: 'Choisis un métier.' }
+        if (!findCareer(params.career)) return { code: 'UNKNOWN_CAREER', message: `Métier inconnu : « ${params.career} ».` }
+        break
+      case 'program':
+        if (!params.program) return { code: 'MISSING_PARAM', message: 'Choisis une formation.' }
+        if (!findProgram(params.program)) return { code: 'UNKNOWN_PROGRAM', message: `Formation inconnue : « ${params.program} ».` }
+        break
+      case 'skill':
+        if (!isSkillId(params.skill)) return { code: 'UNKNOWN_SKILL', message: `Compétence inconnue : « ${String(params.skill)} ».` }
+        break
+      case 'amount':
+        if (params.amount === undefined || !def.amounts?.includes(params.amount)) {
+          return { code: 'INVALID_AMOUNT', message: `Montants possibles : ${def.amounts?.join(' €, ')} €.` }
+        }
+        break
+    }
+  }
+  return null
+}
+
+export function validateAction(state: SimulationState, actionId: string, params: ActionParams = {}): ValidationResult {
   if (!isActionId(actionId)) {
     return { ok: false, issues: [{ code: 'UNKNOWN_ACTION', message: `Action inconnue : « ${actionId} ».` }] }
   }
@@ -243,16 +285,28 @@ export function validateAction(state: SimulationState, actionId: string): Valida
     return { ok: false, issues: [{ code: 'CHARACTER_DEAD', message: `${state.character.name} est décédé·e.` }] }
   }
   const def = ACTIONS[actionId]
+  const invalidParam = paramIssue(state, def, params)
+  if (invalidParam) return { ok: false, issues: [invalidParam] }
+
   const issues: ValidationIssue[] = []
-  // Une action gratuite reste possible même avec un compte à découvert.
-  if (def.cost.money > 0 && state.character.money < def.cost.money) {
+  const cost = actionCost(state, def, params)
+  // Une action gratuite reste possible même à découvert ; une dépense doit tenir dans le découvert autorisé.
+  if (cost > 0 && available(state) < cost) {
     issues.push({
       code: 'INSUFFICIENT_MONEY',
-      message: `Pas assez d’argent : ${def.cost.money} € nécessaires, ${state.character.money} € disponibles.`,
+      message: `Pas assez d’argent : ${cost} € nécessaires, ${Math.max(0, available(state))} € disponibles (découvert autorisé compris).`,
     })
   }
   for (const p of def.preconditions) {
-    if (!p.test(state)) issues.push({ code: p.code, message: p.message })
+    if (!p.test(state, params)) {
+      issues.push({ code: p.code, message: typeof p.message === 'string' ? p.message : p.message(state, params) })
+    }
   }
   return issues.length === 0 ? { ok: true } : { ok: false, issues }
+}
+
+/** Issues incertaines annoncées avant l'action (vide si l'issue est certaine). */
+export function actionOutcomes(state: SimulationState, actionId: ActionId, params: ActionParams = {}): Outcome[] {
+  const def = ACTIONS[actionId]
+  return def.outcomes && !paramIssue(state, def, params) ? def.outcomes(state, params) : []
 }

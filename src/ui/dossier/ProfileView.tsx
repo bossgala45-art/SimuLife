@@ -40,6 +40,7 @@ export default function ProfileView({ dossier, errorCount, onStartLife, onBack }
           birthDate: profile.birthDate,
           start: { ...profile.startDate, hour: 7, minute: 0 },
           attributes: profile.attributes,
+          ...profile.setup,
         }),
       )
     } catch (e) {

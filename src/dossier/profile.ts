@@ -12,6 +12,7 @@ import { hashSeed, nextRandom } from '../engine/rng.ts'
 import type { Attributes, CalendarDate } from '../engine/types.ts'
 import { addYears, formatDay, fromDay, toDay, toInterval } from './dates.ts'
 import { activeAnswer, isConfigured, type Questionnaire } from './questionnaire.ts'
+import { deriveSetup, type SimulationSetup } from './setup.ts'
 import type { AnswerValue, Dossier, QuestionId, SingleQuestion } from './types.ts'
 
 export type HypothesisReason = 'unanswered' | 'unknown' | 'declined' | 'approximate' | 'not_asked'
@@ -40,6 +41,8 @@ export interface LifeProfile {
   /** Date à laquelle commence la vie alternative. */
   startDate: CalendarDate
   attributes: Attributes
+  /** Entourage, diplômes, emploi et compétences de départ pour la simulation. */
+  setup: SimulationSetup
 }
 
 const NAMES = ['Alex', 'Camille', 'Charlie', 'Sacha', 'Noa', 'Eden', 'Lou', 'Maël', 'Andréa', 'Robin']
@@ -98,7 +101,6 @@ const ATTRIBUTE_SOURCES: {
 /** Faits de choix unique repris tels quels dans le profil. */
 const CHOICE_FACTS: { key: string; label: string; questionId: QuestionId }[] = [
   { key: 'birthPlace', label: 'Lieu de naissance', questionId: 'identity.birth_place_type' },
-  { key: 'education', label: 'Niveau d’études', questionId: 'school.highest_level' },
   { key: 'chronotype', label: 'Rythme', questionId: 'personality.morning_evening' },
 ]
 
@@ -206,5 +208,7 @@ export function buildProfile(q: Questionnaire, d: Dossier): LifeProfile | null {
     }
   }
 
-  return { facts, name, birthDate, startDate, attributes }
+  const { setup, facts: setupFacts } = deriveSetup(q, d)
+  facts.push(...setupFacts)
+  return { facts, name, birthDate, startDate, attributes, setup }
 }
