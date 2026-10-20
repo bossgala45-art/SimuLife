@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { buildProfile, QUESTIONNAIRE, REASON_LABELS, type Dossier, type ProfileFact } from '../../dossier/index.ts'
+import { buildProfile, buildTimeline, QUESTIONNAIRE, REASON_LABELS, type Dossier, type ProfileFact } from '../../dossier/index.ts'
+import type { DeclaredEvent } from '../../destiny/types.ts'
 import { createSimulation, SimulationError, type SimulationState } from '../../engine/index.ts'
 
 type Props = {
   dossier: Dossier
   errorCount: number
-  onStartLife: (state: SimulationState) => void
+  onStartLife: (state: SimulationState, declaredPast: DeclaredEvent[], rootName: string) => void
   onBack: () => void
 }
 
@@ -42,6 +43,11 @@ export default function ProfileView({ dossier, errorCount, onStartLife, onBack }
           attributes: profile.attributes,
           ...profile.setup,
         }),
+        // Le passé déclaré (avant la divergence) est conservé avec la vie.
+        buildTimeline(QUESTIONNAIRE, dossier)
+          .filter((e) => e.kind !== 'start')
+          .map((e) => ({ label: e.label, when: e.when, ...(e.detail ? { detail: e.detail } : {}) })),
+        `Vie d’origine (dès ${dossier.startAge} ans)`,
       )
     } catch (e) {
       if (e instanceof SimulationError) setError(e.detail)

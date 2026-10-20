@@ -1,0 +1,126 @@
+.branches {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Indentation par niveau, avec un trait qui relie l'enfant à son parent. */
+.branch {
+  position: relative;
+  padding-left: calc(var(--depth) * 18px);
+}
+
+.branch:not([aria-level='1'])::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  bottom: 50%;
+  left: calc(var(--depth) * 18px - 10px);
+  width: 8px;
+  border-bottom: 2px solid #3a4070;
+  border-left: 2px solid #3a4070;
+  border-bottom-left-radius: 6px;
+}
+
+.node {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  min-height: 52px;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.node--on {
+  border-color: var(--color-accent-2);
+}
+
+.node__name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.node__meta {
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+}
+
+.badge.badge--live {
+  background: rgb(34 200 181 / 0.15);
+  color: var(--color-accent-2);
+}
+
+.tree-actions {
+  display: grid;
+  gap: 8px;
+}
+
+.tree-actions__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tree-actions__row .btn {
+  flex: 1;
+}
+
+.rename {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.rename input {
+  flex: 1;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid #2c3254;
+  border-radius: 10px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.moments {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.past summary {
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.past__list {
+  display: grid;
+  gap: 4px;
+  margin: 10px 0 0;
+  padding-left: 18px;
+  font-size: 0.9375rem;
+}
+
+.choice__why {
+  display: block;
+  color: var(--color-warning);
+  font-size: 0.75rem;
+}
+
+.choice:has(input:disabled) {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

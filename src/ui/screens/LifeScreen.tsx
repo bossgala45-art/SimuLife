@@ -27,6 +27,11 @@ type LifeScreenProps = {
   state: SimulationState
   onChange: (state: SimulationState) => void
   onQuit: () => void
+  /** Branche de l'arbre des destins jouée. */
+  branchName?: string
+  saveError?: string | null
+  onRetrySave?: () => void
+  onTree?: () => void
 }
 
 const ATTRIBUTES: Record<AttributeId, string> = {
@@ -55,7 +60,7 @@ const TABS: { id: Tab; label: string }[] = [
 /** Actions du quotidien (sans cible) ; les autres sont dans leurs onglets. */
 const DAILY_ACTIONS = ACTION_IDS.filter((id) => !ACTIONS[id].params && id !== 'quit_job' && id !== 'drop_out') as ActionId[]
 
-export default function LifeScreen({ state, onChange, onQuit }: LifeScreenProps) {
+export default function LifeScreen({ state, onChange, onQuit, branchName, saveError, onRetrySave, onTree }: LifeScreenProps) {
   const [issues, setIssues] = useState<string[]>([])
   const [showWaits, setShowWaits] = useState(false)
   const [tab, setTab] = useState<Tab>('life')
@@ -95,6 +100,7 @@ export default function LifeScreen({ state, onChange, onQuit }: LifeScreenProps)
             {c.name}, {ageAt(c.birthDate, state.clock)} ans
           </h1>
           <p className="life__date">{formatDate(state.clock)}</p>
+          {branchName && <p className="life__branch">Branche : {branchName}</p>}
         </div>
         <div className="life__right">
           <p className="life__time" aria-label="Heure">
@@ -118,6 +124,16 @@ export default function LifeScreen({ state, onChange, onQuit }: LifeScreenProps)
         </nav>
       </header>
 
+      {saveError && (
+        <div className="life__issues" role="alert">
+          <p>{saveError}</p>
+          {onRetrySave && (
+            <button type="button" className="btn btn--secondary btn--small" onClick={onRetrySave}>
+              Réessayer
+            </button>
+          )}
+        </div>
+      )}
       {!c.alive && (
         <p className="life__banner" role="status">
           {c.name} est décédé·e. Commence une nouvelle vie depuis le menu.
@@ -236,9 +252,16 @@ export default function LifeScreen({ state, onChange, onQuit }: LifeScreenProps)
         <p>
           Graine : <code>{state.seed}</code>
         </p>
-        <button type="button" className="btn btn--secondary" onClick={onQuit}>
-          Menu
-        </button>
+        <div className="life__footer-actions">
+          {onTree && (
+            <button type="button" className="btn btn--secondary" onClick={onTree}>
+              Arbre
+            </button>
+          )}
+          <button type="button" className="btn btn--secondary" onClick={onQuit}>
+            Menu
+          </button>
+        </div>
       </footer>
     </main>
   )

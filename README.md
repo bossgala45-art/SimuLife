@@ -2,9 +2,9 @@
 
 Application web (installable sur iPhone) simulant des vies alternatives réalistes.
 
-**État actuel (mission 4) :** moteur de simulation jouable avec proches autonomes,
-relations et souvenirs, études et diplômes, compétences, métiers, revenus et dettes,
-imprévus ; dossier de vie (109 questions sur un objectif de 500) qui alimente la simulation.
+**État actuel (mission 5) :** arbre des destins (rejouer sa vie à partir d'un autre choix,
+branches indépendantes stockées dans IndexedDB), moteur de simulation avec proches autonomes,
+études, métiers et finances, dossier de vie (109 questions sur un objectif de 500).
 
 ## Prérequis
 
@@ -102,6 +102,35 @@ Règles vérifiées par les tests :
   non vérifiés, signalés par « ≈ » dans l'interface.
 - Une sauvegarde de la version précédente (v1) est migrée automatiquement.
 
+## Arbre des destins (`src/destiny/`, `src/storage/destiny.ts`)
+
+Une vie est un arbre de branches. La racine part du passé déclaré (dossier de vie) ou d'une
+nouvelle vie ; chaque branche naît d'un **instantané daté** de sa branche parent et d'une
+**décision alternative** (accepter un poste, reprendre des études, quitter son emploi,
+déménager, renouer avec un proche, ou simplement « autre hasard »).
+
+| Fichier | Rôle |
+|---|---|
+| `destiny/types.ts` | Vie, branche (identifiant unique, parent, divergence datée), instantané, historique |
+| `destiny/decisions.ts` | Décisions alternatives, validées à l'instant choisi ; hasard propre à chaque branche |
+| `destiny/tree.ts` | Construction de l'arbre, ascendance, contrôle de structure (racine, parents, cycles) |
+| `destiny/exchange.ts` | Export / import versionné (`simulife-destiny`, version 1), validation complète |
+| `storage/destiny.ts` | Stockage IndexedDB avec **Dexie** : création, reprise, sauvegarde, bifurcation, instantanés |
+
+Garanties (testées) :
+
+- **Indépendance** : chaque branche a son propre état, son journal et son hasard ;
+  jouer une branche ne modifie aucune autre.
+- **Protection** : une sauvegarde vise une seule branche et est refusée si la branche est
+  protégée, si elle a été modifiée ailleurs (numéro de révision), ou si elle reculerait dans le temps.
+- **Intégrité** : chaque instantané porte une empreinte SHA-256 vérifiée à la lecture ;
+  restauration possible depuis le dernier instantané intact.
+- **Instantanés** : un tous les 30 jours simulés, 12 au plus par branche (le journal y est
+  allégé aux 300 dernières entrées) ; un point de divergence n'est jamais supprimé.
+- **Import** : tout est vérifié avant écriture (format, version, empreintes, états, structure) ;
+  les identifiants sont renouvelés, rien n'est jamais écrasé.
+- L'ancienne sauvegarde unique (`localStorage`) est importée comme une vie au premier lancement.
+
 ## Dossier de vie (`src/dossier/`)
 
 TypeScript pur, comme le moteur (même règle ESLint d'isolation). API publique : `src/dossier/index.ts`.
@@ -138,12 +167,14 @@ Principes :
 │   ├── app/App.tsx           # navigation entre écrans, sauvegarde automatique
 │   ├── engine/               # moteur de simulation (TS pur) + tests *.test.ts
 │   ├── dossier/              # dossier de vie (TS pur) : catalogue, questionnaire, chronologie
-│   ├── storage/              # sauvegardes locales (partie et dossier, localStorage)
+│   ├── destiny/              # arbre des destins (TS pur) : branches, décisions, import/export
+│   ├── storage/              # IndexedDB (Dexie) pour les vies, localStorage pour le dossier
 │   ├── ui/
 │   │   ├── platform.ts       # détection du mode « écran d'accueil »
 │   │   ├── seed.ts           # graine aléatoire proposée par défaut
 │   │   ├── dossier/          # écrans du dossier de vie (+ tests)
 │   │   ├── life/             # onglets Proches, Parcours, Argent (+ tests)
+│   │   ├── destiny/          # écran de l'arbre, création de branche
 │   │   └── screens/          # Accueil, Nouvelle vie, Vie (+ tests)
 │   ├── styles/global.css     # styles globaux, zones sûres iPhone
 │   └── test/setup.ts         # configuration Vitest
@@ -168,6 +199,7 @@ ESLint le vérifie automatiquement (`no-restricted-imports`).
 
 ## Données personnelles
 
-La partie (`simulife.save.v1`) et le dossier de vie (`simulife.dossier.v1`) sont enregistrés
-uniquement sur l'appareil (`localStorage`), après chaque action ou réponse. Rien n'est envoyé
-à un serveur. Le dossier peut être effacé depuis son écran.
+Les vies et leurs branches (IndexedDB, base `simulife`) et le dossier de vie
+(`localStorage`, `simulife.dossier.v1`) sont enregistrés uniquement sur l'appareil, après
+chaque action ou réponse. Rien n'est envoyé à un serveur. L'export produit un fichier que
+seul l'utilisateur partage s'il le souhaite.

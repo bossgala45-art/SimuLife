@@ -1,59 +1,139 @@
-import { useState } from 'react'
-import { ageAt, formatDate, type SimulationState } from '../engine/index.ts'
-import { clearGame, loadGame, saveGame } from '../storage/savegame.ts'
+import { useEffect, useRef, useState } from 'react'
+import { DestinyError } from '../destiny/errors.ts'
+import { lifeTitle } from '../destiny/summary.ts'
+import type { DeclaredEvent } from '../destiny/types.ts'
+import type { SimulationState } from '../engine/index.ts'
+import { DestinyRepository, migrateLegacyGame, type BranchSession } from '../storage/destiny.ts'
+import { clearGame, loadGame } from '../storage/savegame.ts'
 import DossierScreen from '../ui/dossier/DossierScreen.tsx'
+import { errorText } from '../ui/destiny/download.ts'
+import TreeScreen from '../ui/destiny/TreeScreen.tsx'
 import HomeScreen from '../ui/screens/HomeScreen.tsx'
 import LifeScreen from '../ui/screens/LifeScreen.tsx'
 import NewLifeScreen from '../ui/screens/NewLifeScreen.tsx'
 import { isStandalone } from '../ui/platform.ts'
 
-type Screen = 'home' | 'new' | 'life' | 'dossier'
+type Screen = 'loading' | 'home' | 'new' | 'life' | 'dossier' | 'tree'
 
 function today() {
   const now = new Date()
   return { year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate() }
 }
 
-export default function App() {
-  const [initial] = useState(loadGame)
-  const [game, setGame] = useState<SimulationState | null>(initial.status === 'loaded' ? initial.state : null)
-  const [screen, setScreen] = useState<Screen>('home')
+export default function App({ repository }: { repository?: DestinyRepository }) {
+  const [repo] = useState(() => repository ?? new DestinyRepository())
+  const [screen, setScreen] = useState<Screen>('loading')
+  const [session, setSession] = useState<BranchSession | null>(null)
+  const [branchName, setBranchName] = useState('')
+  const [resume, setResume] = useState<{ label: string; branchId: string } | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
+  /** Dernière version enregistrée de la branche jouée (sa révision fait foi pour la prochaine sauvegarde). */
+  const persisted = useRef<BranchSession | null>(null)
+  /** Les sauvegardes passent l'une après l'autre, dans l'ordre des actions. */
+  const queue = useRef<Promise<void>>(Promise.resolve())
 
-  function update(state: SimulationState) {
-    setGame(state)
-    setSaveError(saveGame(state))
+  async function describeResume(): Promise<{ label: string; branchId: string } | null> {
+    const [latest] = await repo.listTrees()
+    if (!latest) return null
+    const branch = await repo.getBranch(latest.currentBranchId)
+    const s = branch.summary
+    return { label: `${s.characterName}, ${s.age} ans — ${branch.name}`, branchId: branch.id }
   }
 
-  function startLife(state: SimulationState) {
-    clearGame()
-    update(state)
+  useEffect(() => {
+    let cancelled = false
+    migrateLegacyGame(repo, { load: loadGame, clear: clearGame })
+      .then(() => describeResume())
+      .then((r) => !cancelled && setResume(r))
+      .catch((e) => !cancelled && setNotice(errorText(e)))
+      .finally(() => !cancelled && setScreen('home'))
+    return () => {
+      cancelled = true
+    }
+    // Chargement initial uniquement.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [repo])
+
+  async function enter(next: BranchSession) {
+    persisted.current = next
+    setSession(next)
+    setSaveError(null)
+    setBranchName(next.branchId ? (await repo.getBranch(next.branchId)).name : 'Sans sauvegarde')
     setScreen('life')
   }
 
-  const loadError = initial.status === 'error' && !game ? `Sauvegarde illisible : ${initial.message}` : undefined
+  async function startLife(state: SimulationState, declaredPast?: DeclaredEvent[], rootName?: string) {
+    try {
+      await enter(await repo.createTree({ name: lifeTitle(state.character.name), state, declaredPast, branchName: rootName }))
+    } catch (e) {
+      // Sans stockage, la vie reste jouable mais n'est pas sauvegardée.
+      if (e instanceof DestinyError && e.code === 'STORAGE_UNAVAILABLE') {
+        persisted.current = null
+        setSession({ treeId: '', branchId: '', revision: 0, state })
+        setBranchName('Sans sauvegarde')
+        setSaveError(e.detail)
+        setScreen('life')
+      } else {
+        setNotice(errorText(e))
+      }
+    }
+  }
+
+  function update(state: SimulationState) {
+    setSession((s) => s && { ...s, state })
+    queue.current = queue.current.then(async () => {
+      const base = persisted.current
+      if (!base) return
+      try {
+        persisted.current = await repo.save(base, state)
+        setSaveError(null)
+      } catch (e) {
+        setSaveError(`Sauvegarde impossible : ${errorText(e)}`)
+      }
+    })
+  }
+
+  async function leaveLife(to: Screen) {
+    await queue.current
+    setResume(await describeResume().catch(() => null))
+    setScreen(to)
+  }
 
   return (
     <>
+      {screen === 'loading' && <p className="loading">Chargement…</p>}
       {screen === 'home' && (
         <HomeScreen
           installed={isStandalone()}
-          savedLife={
-            game
-              ? `${game.character.name}, ${ageAt(game.character.birthDate, game.clock)} ans — ${formatDate(game.clock)}`
-              : undefined
-          }
-          loadError={saveError ?? loadError}
+          savedLife={resume?.label}
+          loadError={notice ?? undefined}
           onNewLife={() => setScreen('new')}
           onDossier={() => setScreen('dossier')}
-          onContinue={() => setScreen('life')}
+          onTree={() => setScreen('tree')}
+          onContinue={() => {
+            if (resume) repo.openBranch(resume.branchId).then(enter, (e) => setNotice(errorText(e)))
+          }}
         />
       )}
-      {screen === 'dossier' && (
-        <DossierScreen today={today()} onBack={() => setScreen('home')} onStartLife={startLife} />
+      {screen === 'tree' && (
+        <TreeScreen repo={repo} activeBranchId={session?.branchId || null} onOpen={(s) => void enter(s)} onBack={() => void leaveLife('home')} />
       )}
-      {screen === 'new' && <NewLifeScreen onCreate={startLife} onCancel={() => setScreen('home')} />}
-      {screen === 'life' && game && <LifeScreen state={game} onChange={update} onQuit={() => setScreen('home')} />}
+      {screen === 'dossier' && (
+        <DossierScreen today={today()} onBack={() => setScreen('home')} onStartLife={(state, past, name) => void startLife(state, past, name)} />
+      )}
+      {screen === 'new' && <NewLifeScreen onCreate={(state) => void startLife(state)} onCancel={() => setScreen('home')} />}
+      {screen === 'life' && session && (
+        <LifeScreen
+          state={session.state}
+          branchName={branchName}
+          saveError={saveError}
+          onRetrySave={() => update(session.state)}
+          onChange={update}
+          onTree={session.branchId ? () => void leaveLife('tree') : undefined}
+          onQuit={() => void leaveLife('home')}
+        />
+      )}
       <div className="rotate-hint">
         <p>Tourne ton iPhone en mode portrait pour jouer.</p>
       </div>

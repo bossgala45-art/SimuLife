@@ -9,6 +9,7 @@ import {
   type CategoryId,
   type Dossier,
 } from '../../dossier/index.ts'
+import type { DeclaredEvent } from '../../destiny/types.ts'
 import type { CalendarDate, SimulationState } from '../../engine/index.ts'
 import { clearDossier, loadDossier, saveDossier } from '../../storage/dossier.ts'
 import { randomSeed } from '../seed.ts'
@@ -32,7 +33,8 @@ type View =
 type Props = {
   today: CalendarDate
   onBack: () => void
-  onStartLife: (state: SimulationState) => void
+  /** Vie créée, avec le passé déclaré conservé jusqu'à la divergence et le nom de la branche d'origine. */
+  onStartLife: (state: SimulationState, declaredPast: DeclaredEvent[], rootName: string) => void
 }
 
 function initialDossier(): { dossier: Dossier; loadError: string | null } {

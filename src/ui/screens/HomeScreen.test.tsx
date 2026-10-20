@@ -7,13 +7,13 @@ const noop = () => {}
 
 describe('HomeScreen', () => {
   it('affiche le titre SIMULIFE', () => {
-    render(<HomeScreen installed={false} onNewLife={noop} onContinue={noop} onDossier={noop} />)
+    render(<HomeScreen installed={false} onNewLife={noop} onContinue={noop} onDossier={noop} onTree={noop} />)
     expect(screen.getByRole('heading', { level: 1, name: 'SIMULIFE' })).toBeTruthy()
   })
 
   it('lance une nouvelle vie', async () => {
     const onNewLife = vi.fn()
-    render(<HomeScreen installed={false} onNewLife={onNewLife} onContinue={noop} onDossier={noop} />)
+    render(<HomeScreen installed={false} onNewLife={onNewLife} onContinue={noop} onDossier={noop} onTree={noop} />)
     expect(screen.queryByRole('button', { name: 'Continuer' })).toBeNull()
     await userEvent.setup().click(screen.getByRole('button', { name: 'Nouvelle vie' }))
     expect(onNewLife).toHaveBeenCalledOnce()
@@ -21,7 +21,7 @@ describe('HomeScreen', () => {
 
   it('propose de continuer une partie sauvegardée', async () => {
     const onContinue = vi.fn()
-    render(<HomeScreen installed={false} savedLife="Léa, 24 ans" onNewLife={noop} onContinue={onContinue} onDossier={noop} />)
+    render(<HomeScreen installed={false} savedLife="Léa, 24 ans" onNewLife={noop} onContinue={onContinue} onDossier={noop} onTree={noop} />)
     expect(screen.getByText('Léa, 24 ans')).toBeTruthy()
     await userEvent.setup().click(screen.getByRole('button', { name: 'Continuer' }))
     expect(onContinue).toHaveBeenCalledOnce()
@@ -29,7 +29,7 @@ describe('HomeScreen', () => {
 
   it('ouvre et ferme le panneau « À propos »', async () => {
     const user = userEvent.setup()
-    render(<HomeScreen installed={false} onNewLife={noop} onContinue={noop} onDossier={noop} />)
+    render(<HomeScreen installed={false} onNewLife={noop} onContinue={noop} onDossier={noop} onTree={noop} />)
 
     expect(screen.queryByRole('region', { name: 'À propos de SIMULIFE' })).toBeNull()
 
@@ -42,11 +42,11 @@ describe('HomeScreen', () => {
   })
 
   it('affiche l’aide à l’installation seulement hors écran d’accueil', () => {
-    const { unmount } = render(<HomeScreen installed={false} onNewLife={noop} onContinue={noop} onDossier={noop} />)
+    const { unmount } = render(<HomeScreen installed={false} onNewLife={noop} onContinue={noop} onDossier={noop} onTree={noop} />)
     expect(screen.getByText(/Sur l’écran d’accueil/)).toBeTruthy()
     unmount()
 
-    render(<HomeScreen installed={true} onNewLife={noop} onContinue={noop} onDossier={noop} />)
+    render(<HomeScreen installed={true} onNewLife={noop} onContinue={noop} onDossier={noop} onTree={noop} />)
     expect(screen.queryByText(/Sur l’écran d’accueil/)).toBeNull()
   })
 })

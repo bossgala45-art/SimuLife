@@ -599,3 +599,20 @@
 .skills .gauge {
   grid-template-columns: 11em 1fr;
 }
+
+.life__branch {
+  margin: 2px 0 0;
+  color: #c9b8ff;
+  font-size: 0.8125rem;
+}
+
+.life__footer-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.loading {
+  padding: 40px 24px;
+  color: var(--color-muted);
+  text-align: center;
+}

@@ -11,9 +11,10 @@ type HomeScreenProps = {
   onNewLife: () => void
   onContinue: () => void
   onDossier: () => void
+  onTree: () => void
 }
 
-export default function HomeScreen({ installed, savedLife, loadError, onNewLife, onContinue, onDossier }: HomeScreenProps) {
+export default function HomeScreen({ installed, savedLife, loadError, onNewLife, onContinue, onDossier, onTree }: HomeScreenProps) {
   const [aboutOpen, setAboutOpen] = useState(false)
   const aboutId = useId()
 
@@ -45,6 +46,9 @@ export default function HomeScreen({ installed, savedLife, loadError, onNewLife,
         <button type="button" className="btn btn--secondary" onClick={onDossier}>
           Dossier de vie
         </button>
+        <button type="button" className="btn btn--secondary" onClick={onTree}>
+          Arbre des destins
+        </button>
 
         <button
           type="button"
@@ -63,7 +67,7 @@ export default function HomeScreen({ installed, savedLife, loadError, onNewLife,
             SIMULIFE simule des vies alternatives. Le dossier de vie te permet de raconter ton histoire ; la
             simulation reprend ensuite à l’âge que tu choisis.
           </p>
-          <p>Ta partie et ton dossier sont enregistrés uniquement sur cet appareil.</p>
+          <p>Tes vies, leurs branches et ton dossier sont enregistrés uniquement sur cet appareil.</p>
         </section>
       )}
 
