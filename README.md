@@ -2,8 +2,8 @@
 
 Application web (installable sur iPhone) simulant des vies alternatives réalistes.
 
-**État actuel (mission 1) :** fondations uniquement — écran d'accueil, configuration
-de l'outillage, structure modulaire. Aucune simulation n'est encore implémentée.
+**État actuel (mission 2) :** moteur de simulation (temps, besoins, actions,
+événements, hasard reproductible) et démonstration jouable sur plusieurs journées.
 
 ## Prérequis
 
@@ -40,29 +40,58 @@ Une fois l'application hébergée à une adresse HTTPS :
 2. Toucher **Partager**, puis **Sur l'écran d'accueil**.
 3. L'application se lance alors en plein écran, sans barre Safari.
 
+## Moteur de simulation (`src/engine/`)
+
+TypeScript pur, sans React ni accès au navigateur. API publique : `src/engine/index.ts`.
+
+| Fichier | Rôle |
+|---|---|
+| `types.ts` | État de simulation : objet JSON pur, sérialisable tel quel |
+| `time.ts` | Horloge en minutes entières, calendrier grégorien sans fuseau, avance par jour / semaine / mois |
+| `rng.ts` | Générateur pseudo-aléatoire à graine (mulberry32), état sur 32 bits enregistré dans la partie |
+| `needs.ts` | Besoins (sommeil, faim, hygiène, fatigue, stress, humeur) et leur évolution horaire |
+| `actions.ts` | Catalogue d'actions : préconditions, durée, coût, effets ; validation |
+| `events.ts` | Événements immédiats et différés (loyer, anniversaire, blessure, prime…) |
+| `journal.ts` | Journal structuré (numéro, date, type, code, message, données) |
+| `routine.ts` | Routine automatique utilisée pour avancer d'un jour, d'une semaine, d'un mois |
+| `simulation.ts` | Création d'une vie, exécution d'actions, passage du temps |
+| `serialization.ts` | Sauvegarde / chargement avec vérification de chaque champ |
+
+Garanties, couvertes par les tests :
+
+- **Aucune action impossible** : toute action (du joueur ou de la routine) passe par
+  `validateAction`, qui renvoie la liste complète des raisons de refus. Une action refusée
+  ne modifie pas l'état.
+- **Temps cohérent** : l'horloge est un entier de minutes ; avancer d'un jour ajoute
+  exactement 1 440 minutes, d'un mois un mois calendaire (31 janv. → 28 févr.).
+  Les événements différés s'appliquent à la minute prévue.
+- **Reproductible** : même graine + même état + mêmes choix = même résultat, y compris
+  après sauvegarde et rechargement. Le moteur n'utilise ni `Math.random`, ni l'heure
+  réelle, ni de fonction mathématique dont le résultat varie d'un navigateur à l'autre.
+- **Erreurs explicites** : refus de règle → `ValidationIssue { code, message }` ;
+  argument ou sauvegarde invalide → `SimulationError` avec code et message en français.
+- **Fonctions pures** : `performAction` et `advance` renvoient un nouvel état et les
+  entrées de journal produites, sans modifier l'état reçu.
+
 ## Structure
 
 ```
 .
-├── index.html              # page d'entrée (méta iPhone, manifeste, icônes)
-├── public/
-│   ├── manifest.webmanifest
-│   ├── favicon.svg         # logo
-│   ├── apple-touch-icon.png  # icône écran d'accueil iPhone (180×180)
-│   ├── icon-192.png
-│   └── icon-512.png
+├── index.html                # page d'entrée (méta iPhone, manifeste, icônes)
+├── public/                   # manifeste et icônes
 ├── src/
-│   ├── main.tsx            # point d'entrée React
-│   ├── app/App.tsx         # composition de l'application
-│   ├── ui/                 # interface (React)
-│   │   ├── platform.ts     # détection du mode « écran d'accueil »
-│   │   └── screens/HomeScreen.{tsx,css,test.tsx}
-│   ├── engine/             # moteur de simulation (TS pur, vide pour l'instant)
-│   ├── storage/            # persistance locale (vide pour l'instant)
-│   ├── styles/global.css   # styles globaux, zones sûres iPhone
-│   └── test/setup.ts       # configuration Vitest
+│   ├── main.tsx              # point d'entrée React
+│   ├── app/App.tsx           # navigation entre écrans, sauvegarde automatique
+│   ├── engine/               # moteur de simulation (TS pur) + tests *.test.ts
+│   ├── storage/savegame.ts   # sauvegarde locale (localStorage)
+│   ├── ui/
+│   │   ├── platform.ts       # détection du mode « écran d'accueil »
+│   │   ├── seed.ts           # graine aléatoire proposée par défaut
+│   │   └── screens/          # Accueil, Nouvelle vie, Vie (+ tests)
+│   ├── styles/global.css     # styles globaux, zones sûres iPhone
+│   └── test/setup.ts         # configuration Vitest
 ├── eslint.config.js
-├── vite.config.ts          # config Vite + Vitest
+├── vite.config.ts            # config Vite + Vitest
 └── tsconfig*.json
 ```
 
@@ -82,5 +111,5 @@ ESLint le vérifie automatiquement (`no-restricted-imports`).
 
 ## Données personnelles
 
-Elles seront stockées localement sur l'appareil par défaut. Cette version n'enregistre
-encore aucune donnée.
+La partie est enregistrée uniquement sur l'appareil (`localStorage`, clé
+`simulife.save.v1`), après chaque action. Rien n'est envoyé à un serveur.

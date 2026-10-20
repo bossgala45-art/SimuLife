@@ -5,6 +5,8 @@
   --color-muted: #a3a8c3;
   --color-accent: #7c5cff;
   --color-accent-2: #22c8b5;
+  --color-danger: #ff5c7a;
+  --color-warning: #ffb020;
   --radius: 16px;
 
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, 'Segoe UI', Roboto, sans-serif;

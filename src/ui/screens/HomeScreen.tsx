@@ -4,9 +4,15 @@ import './HomeScreen.css'
 type HomeScreenProps = {
   /** Vrai quand l'app est lancée depuis l'écran d'accueil de l'iPhone. */
   installed: boolean
+  /** Résumé de la partie sauvegardée, s'il y en a une. */
+  savedLife?: string
+  /** Problème rencontré en lisant la sauvegarde. */
+  loadError?: string
+  onNewLife: () => void
+  onContinue: () => void
 }
 
-export default function HomeScreen({ installed }: HomeScreenProps) {
+export default function HomeScreen({ installed, savedLife, loadError, onNewLife, onContinue }: HomeScreenProps) {
   const [aboutOpen, setAboutOpen] = useState(false)
   const aboutId = useId()
 
@@ -19,12 +25,22 @@ export default function HomeScreen({ installed }: HomeScreenProps) {
       </header>
 
       <section className="home__actions" aria-label="Menu principal">
-        <button type="button" className="btn btn--primary" disabled aria-describedby={`${aboutId}-soon`}>
+        {savedLife && (
+          <>
+            <button type="button" className="btn btn--primary" onClick={onContinue}>
+              Continuer
+            </button>
+            <p className="home__note">{savedLife}</p>
+          </>
+        )}
+        {loadError && (
+          <p className="home__note home__note--error" role="alert">
+            {loadError}
+          </p>
+        )}
+        <button type="button" className={savedLife ? 'btn btn--secondary' : 'btn btn--primary'} onClick={onNewLife}>
           Nouvelle vie
         </button>
-        <p id={`${aboutId}-soon`} className="home__note">
-          La simulation n’est pas encore disponible.
-        </p>
 
         <button
           type="button"
@@ -40,10 +56,10 @@ export default function HomeScreen({ installed }: HomeScreenProps) {
       {aboutOpen && (
         <section id={aboutId} className="home__about" aria-label="À propos de SIMULIFE">
           <p>
-            SIMULIFE simulera des vies alternatives réalistes. Cette version ne contient que les
-            fondations de l’application.
+            SIMULIFE simule des vies alternatives. Cette version est une démonstration du moteur : temps, besoins,
+            actions et événements.
           </p>
-          <p>Tes données resteront stockées sur cet appareil. Aucune donnée n’est encore enregistrée.</p>
+          <p>Ta partie est enregistrée uniquement sur cet appareil.</p>
         </section>
       )}
 

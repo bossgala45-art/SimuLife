@@ -54,6 +54,10 @@
   text-align: center;
 }
 
+.home__note--error {
+  color: var(--color-danger);
+}
+
 .home__about {
   padding: 16px 20px;
   border-radius: var(--radius);
