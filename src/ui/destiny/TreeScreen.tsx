@@ -12,7 +12,8 @@ type Props = {
   /** Branche actuellement jouée (mise en évidence). */
   activeBranchId: string | null
   onOpen: (session: BranchSession) => void
-  onBack: () => void
+  /** Absent quand l'arbre est affiché dans le jeu (onglet Destins). */
+  onBack?: () => void
 }
 
 type Message = { kind: 'error' | 'info'; text: string }
@@ -31,6 +32,8 @@ export default function TreeScreen({ repo, activeBranchId, onOpen, onBack }: Pro
 
   const tree = trees?.find((t) => t.id === treeId) ?? null
   const selected = branches.find((b) => b.id === selectedId) ?? null
+  /** Dans le jeu, la vie en cours ne peut pas être supprimée sous les pieds du joueur. */
+  const playing = !onBack
 
   /** Lit les vies et les branches de la vie choisie (sans toucher à l'affichage). */
   const fetchView = useCallback(
@@ -109,12 +112,14 @@ export default function TreeScreen({ repo, activeBranchId, onOpen, onBack }: Pro
   const pastMoments = snapshots.filter((s) => s.kind !== 'head')
 
   return (
-    <main className="dossier tree-screen">
-      <header className="dossier__bar">
-        <button type="button" className="link" onClick={onBack}>
-          ‹ Menu
-        </button>
-      </header>
+    <main className={onBack ? 'dossier tree-screen' : 'tree-screen tree-screen--embedded'}>
+      {onBack && (
+        <header className="dossier__bar">
+          <button type="button" className="link" onClick={onBack}>
+            ‹ Menu
+          </button>
+        </header>
+      )}
       <h1 className="dossier__title">Arbre des destins</h1>
 
       {message && (
@@ -239,7 +244,7 @@ export default function TreeScreen({ repo, activeBranchId, onOpen, onBack }: Pro
               >
                 {selected.locked ? 'Déverrouiller' : 'Protéger'}
               </button>
-              {selected.parentId !== null && childrenOf(branches, selected.id).length === 0 && (
+              {selected.parentId !== null && childrenOf(branches, selected.id).length === 0 && !(playing && selected.id === activeBranchId) && (
                 <button type="button" className="btn btn--secondary btn--small" onClick={() => setConfirm('branch')}>
                   Supprimer
                 </button>
@@ -343,6 +348,7 @@ export default function TreeScreen({ repo, activeBranchId, onOpen, onBack }: Pro
             </button>
           )}
           {tree &&
+            !(playing && branches.some((b) => b.id === activeBranchId)) &&
             (confirm === 'tree' ? (
               <div className="tree-actions__row">
                 <button

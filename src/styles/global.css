@@ -1,12 +1,22 @@
 :root {
+  /* Thème sombre (par défaut). */
   --color-bg: #0f1222;
   --color-surface: #1a1e36;
+  --color-surface-2: #232845;
   --color-text: #f2f3fa;
   --color-muted: #a3a8c3;
+  --color-border: #2f3558;
   --color-accent: #7c5cff;
   --color-accent-2: #22c8b5;
+  --color-accent-text: #c9b8ff;
   --color-danger: #ff5c7a;
   --color-warning: #ffb020;
+  --color-danger-soft: rgb(255 92 122 / 0.15);
+  --color-warning-soft: rgb(255 176 32 / 0.14);
+  --color-accent-2-soft: rgb(34 200 181 / 0.15);
+  --color-glow: rgb(124 92 255 / 0.35);
+  --color-scrim: rgb(5 6 14 / 0.6);
+  --shadow: 0 10px 30px rgb(0 0 0 / 0.35);
   --radius: 16px;
 
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, 'Segoe UI', Roboto, sans-serif;
@@ -15,8 +25,73 @@
   color: var(--color-text);
   background-color: var(--color-bg);
   color-scheme: dark;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+}
+
+/* Thème clair : choisi dans les réglages, ou suivi du système en mode automatique. */
+:root[data-theme='light'] {
+  --color-bg: #f3f4fa;
+  --color-surface: #ffffff;
+  --color-surface-2: #eceef8;
+  --color-text: #171a2e;
+  --color-muted: #5b607f;
+  --color-border: #d7dbec;
+  --color-accent: #6a4cf0;
+  --color-accent-2: #0d8f81;
+  --color-accent-text: #5a3fd6;
+  --color-danger: #c92a49;
+  --color-warning: #9a6200;
+  --color-danger-soft: rgb(201 42 73 / 0.1);
+  --color-warning-soft: rgb(154 98 0 / 0.1);
+  --color-accent-2-soft: rgb(13 143 129 / 0.12);
+  --color-glow: rgb(106 76 240 / 0.25);
+  --color-scrim: rgb(20 22 40 / 0.35);
+  --shadow: 0 8px 24px rgb(23 26 46 / 0.12);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    --color-bg: #f3f4fa;
+    --color-surface: #ffffff;
+    --color-surface-2: #eceef8;
+    --color-text: #171a2e;
+    --color-muted: #5b607f;
+    --color-border: #d7dbec;
+    --color-accent: #6a4cf0;
+    --color-accent-2: #0d8f81;
+    --color-accent-text: #5a3fd6;
+    --color-danger: #c92a49;
+    --color-warning: #9a6200;
+    --color-danger-soft: rgb(201 42 73 / 0.1);
+    --color-warning-soft: rgb(154 98 0 / 0.1);
+    --color-accent-2-soft: rgb(13 143 129 / 0.12);
+    --color-glow: rgb(106 76 240 / 0.25);
+    --color-scrim: rgb(20 22 40 / 0.35);
+    --shadow: 0 8px 24px rgb(23 26 46 / 0.12);
+    color-scheme: light;
+  }
+}
+
+/* Animations réduites : demandées par le système ou dans les réglages. */
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-motion='full']) *,
+  :root:not([data-motion='full']) *::before,
+  :root:not([data-motion='full']) *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+:root[data-motion='reduced'] *,
+:root[data-motion='reduced'] *::before,
+:root[data-motion='reduced'] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
 }
 
 *,
@@ -77,6 +152,7 @@ button {
 
 .btn--primary {
   background: linear-gradient(135deg, var(--color-accent), var(--color-accent-2));
+  color: #fff; /* lisible dans les deux thèmes */
 }
 
 .btn--secondary {
@@ -101,4 +177,19 @@ button {
     font-weight: 600;
     background: var(--color-bg);
   }
+}
+
+.loading {
+  padding: 40px 24px;
+  color: var(--color-muted);
+  text-align: center;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }

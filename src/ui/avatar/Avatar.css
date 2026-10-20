@@ -1,0 +1,29 @@
+.avatar {
+  position: relative;
+  width: 100%;
+  height: 210px;
+  color: var(--color-text);
+}
+
+.avatar canvas {
+  touch-action: pan-y;
+}
+
+.avatar-svg {
+  display: block;
+  width: auto;
+  height: 100%;
+  margin: 0 auto;
+}
+
+/* Respiration du repli 2D (désactivée si les animations sont réduites). */
+.avatar-svg--alive {
+  transform-origin: 50% 100%;
+  animation: avatar-breathe 3.2s var(--ease) infinite;
+}
+
+@keyframes avatar-breathe {
+  50% {
+    transform: scaleY(1.015) translateY(-1px);
+  }
+}

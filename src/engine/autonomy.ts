@@ -88,7 +88,7 @@ function updatePerson(draft: SimulationState, person: Person): void {
       rel.lastContact = draft.clock
       adjustRelationship(draft, person.id, { closeness: 1 })
       draft.character.needs.mood = clamp(draft.character.needs.mood + 5)
-      writeLog(draft, 'social', 'npc_called', `${person.name} t’appelle pour prendre des nouvelles.`)
+      writeLog(draft, 'social', 'npc_called', `${person.name} t’appelle pour prendre des nouvelles.`, { personId: person.id })
     }
   }
 }
@@ -102,7 +102,9 @@ function birthdays(draft: SimulationState): void {
     if (!person.alive) continue
     const rel = draft.relationships[person.id]
     if (isBirthday(person, today)) {
-      writeLog(draft, 'social', 'npc_birthday', `C’est l’anniversaire de ${person.name} aujourd’hui (${ageAt(person.birthDate, draft.clock)} ans).`)
+      writeLog(draft, 'social', 'npc_birthday', `C’est l’anniversaire de ${person.name} aujourd’hui (${ageAt(person.birthDate, draft.clock)} ans).`, {
+        personId: person.id,
+      })
     }
     if (rel && isBirthday(person, yesterday) && person.role !== 'colleague') {
       if (rel.lastContact !== null && rel.lastContact >= yesterdayStart) {
@@ -111,7 +113,7 @@ function birthdays(draft: SimulationState): void {
       } else if (rel.closeness >= 30) {
         adjustRelationship(draft, person.id, { closeness: -4, tension: 3 })
         addMemory(draft, person.id, 'birthday_forgotten', -4, 'Tu as oublié son anniversaire.')
-        writeLog(draft, 'social', 'birthday_forgotten', `Tu as oublié l’anniversaire de ${person.name}.`)
+        writeLog(draft, 'social', 'birthday_forgotten', `Tu as oublié l’anniversaire de ${person.name}.`, { personId: person.id })
       }
     }
   }
@@ -142,6 +144,7 @@ export const AUTONOMY_HANDLERS = {
       'social',
       'npc_recovered',
       `${person.name} est rétabli·e${supported ? ' et te remercie de ton soutien' : rel && rel.closeness >= 40 ? ' et regrette de ne pas avoir eu de tes nouvelles' : ''}.`,
+      { personId: person.id },
     )
   },
 }

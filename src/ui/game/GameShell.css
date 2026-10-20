@@ -1,0 +1,616 @@
+/* ——— Coque du jeu : HUD, contenu, barre d'onglets, menu, scènes ——— */
+
+.game {
+  --tabbar-height: 60px;
+  width: 100%;
+  max-width: 480px;
+  min-height: 100dvh;
+  margin: 0 auto;
+}
+
+.hud {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: calc(env(safe-area-inset-top) + 8px) calc(env(safe-area-inset-right) + 14px) 8px calc(env(safe-area-inset-left) + 14px);
+  background: color-mix(in srgb, var(--color-bg) 88%, transparent);
+  border-bottom: 1px solid var(--color-border);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+
+.hud__name {
+  margin: 0;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.hud__date {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.hud__money {
+  margin: 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--color-accent-2-soft);
+  color: var(--color-accent-2);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.hud__money--neg {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.hud__menu {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.game__content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px calc(env(safe-area-inset-right) + 12px) calc(var(--tabbar-height) + env(safe-area-inset-bottom) + 20px)
+    calc(env(safe-area-inset-left) + 12px);
+  animation: fade-in 0.25s var(--ease);
+}
+
+.page-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.page-head h1 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.page-link {
+  margin-top: 8px;
+}
+
+/* ——— Barre d'onglets ——— */
+
+.tabbar {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  z-index: 5;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  width: 100%;
+  max-width: 480px;
+  padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  transform: translateX(-50%);
+  background: color-mix(in srgb, var(--color-surface) 92%, transparent);
+  border-top: 1px solid var(--color-border);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+
+.tabbar__tab {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: var(--tabbar-height);
+  border: 0;
+  background: none;
+  color: var(--color-muted);
+  font-size: 0.6875rem;
+  cursor: pointer;
+  transition: color 0.2s var(--ease);
+}
+
+.tabbar__tab .icon {
+  transition: transform 0.2s var(--ease);
+}
+
+.tabbar__tab--on {
+  color: var(--color-accent-text);
+  font-weight: 600;
+}
+
+.tabbar__tab--on .icon {
+  transform: translateY(-2px);
+}
+
+.tabbar__tab:focus-visible,
+.hud__menu:focus-visible,
+.sheet__item:focus-visible {
+  outline: 3px solid var(--color-accent-2);
+  outline-offset: -3px;
+}
+
+.tabbar__badge {
+  position: absolute;
+  top: 6px;
+  left: calc(50% + 6px);
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--color-danger);
+  color: #fff;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 18px;
+}
+
+/* ——— Menu secondaire (feuille) ——— */
+
+.sheet-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: var(--color-scrim);
+  animation: fade-in 0.2s var(--ease);
+}
+
+.sheet {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+  max-width: 480px;
+  max-height: 85dvh;
+  overflow-y: auto;
+  padding: 10px calc(env(safe-area-inset-right) + 16px) calc(env(safe-area-inset-bottom) + 12px) calc(env(safe-area-inset-left) + 16px);
+  border-radius: 22px 22px 0 0;
+  background: var(--color-surface);
+  box-shadow: var(--shadow);
+  animation: sheet-up 0.28s var(--ease);
+}
+
+.sheet__grip {
+  justify-self: center;
+  width: 40px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--color-border);
+}
+
+.sheet__branch {
+  margin: 0;
+  color: var(--color-accent-text);
+  font-size: 0.8125rem;
+  text-align: center;
+}
+
+.sheet__list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sheet__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 56px;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sheet__item:active {
+  transform: scale(0.97);
+}
+
+.sheet .btn--secondary {
+  background: var(--color-bg);
+}
+
+.sheet__close {
+  justify-self: center;
+}
+
+/* ——— Onglet Vie ——— */
+
+.hero {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 8px 0 4px;
+  border-radius: var(--radius);
+  background: radial-gradient(circle at 50% 70%, var(--color-glow), transparent 65%), var(--color-surface);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.event-cards {
+  display: grid;
+  gap: 8px;
+}
+
+.event-cards h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.event-cards__list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.event-card {
+  padding: 12px 14px;
+  border-left: 4px solid var(--color-accent);
+  border-radius: 14px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow);
+  animation: card-in 0.35s var(--ease) both;
+}
+
+.event-card--good {
+  border-left-color: var(--color-accent-2);
+}
+
+.event-card--bad {
+  border-left-color: var(--color-danger);
+}
+
+.event-card__head {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.event-card__head time {
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.event-card__icon {
+  font-size: 1.25rem;
+}
+
+.event-card p {
+  margin: 6px 0 0;
+  font-size: 0.9375rem;
+}
+
+.event-card__actions {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.event-card__actions .link {
+  justify-self: end;
+}
+
+/* ——— Onglet Temps ——— */
+
+.clock {
+  text-align: center;
+}
+
+.clock__time {
+  margin: 0;
+  font-size: 3rem;
+  font-weight: 800;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.clock__date {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.card .action + .advance {
+  margin-top: 8px;
+}
+
+.agenda {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.9375rem;
+}
+
+.agenda li {
+  display: grid;
+  grid-template-columns: 1.6em 1fr auto;
+  gap: 6px;
+  align-items: baseline;
+}
+
+.agenda time {
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+  text-align: right;
+}
+
+.badge.badge--maybe {
+  margin-left: 6px;
+  background: var(--color-glow);
+  color: var(--color-accent-text);
+  white-space: nowrap;
+}
+
+/* ——— Journal ——— */
+
+.filters {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.filter {
+  flex-shrink: 0;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: none;
+  color: var(--color-muted);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.filter--on {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: #fff;
+}
+
+/* ——— Paramètres ——— */
+
+.choice {
+  width: 100%;
+  min-width: 0;
+  margin: 0 0 12px;
+  padding: 0;
+  border: 0;
+}
+
+.choice legend {
+  margin-bottom: 6px;
+  padding: 0;
+  font-weight: 600;
+}
+
+.segmented {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  width: 100%;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--color-bg);
+}
+
+.segmented__option {
+  display: grid;
+  place-items: center;
+  min-height: 40px;
+  border-radius: 9px;
+  color: var(--color-muted);
+  font-size: 0.875rem;
+  text-align: center;
+  cursor: pointer;
+}
+
+.segmented__option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.segmented__option--on {
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-weight: 600;
+  box-shadow: var(--shadow);
+}
+
+.segmented__option:has(input:focus-visible) {
+  outline: 3px solid var(--color-accent-2);
+}
+
+.switch {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  font-weight: 600;
+}
+
+.switch input {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--color-accent);
+}
+
+.volume {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 10px;
+  margin-bottom: 8px;
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
+
+.volume input {
+  grid-column: 1 / -1;
+  width: 100%;
+  accent-color: var(--color-accent);
+}
+
+.volume__value {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ——— Destins intégré ——— */
+
+.tree-screen--embedded {
+  display: grid;
+  gap: 12px;
+}
+
+.tree-screen--embedded .dossier__title {
+  margin: 0;
+}
+
+/* ——— Scènes des moments importants ——— */
+
+.scene {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: calc(env(safe-area-inset-top) + 24px) 24px calc(env(safe-area-inset-bottom) + 24px);
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 35%, var(--color-glow), transparent 70%), var(--color-bg);
+  animation: fade-in 0.4s var(--ease);
+}
+
+.scene--joy {
+  background: radial-gradient(circle at 50% 35%, var(--color-accent-2-soft), transparent 70%),
+    radial-gradient(circle at 50% 60%, var(--color-glow), transparent 75%), var(--color-bg);
+}
+
+.scene--sorrow {
+  background: radial-gradient(circle at 50% 30%, rgb(120 130 160 / 0.25), transparent 70%), var(--color-bg);
+}
+
+.scene__body {
+  position: relative;
+  display: grid;
+  gap: 12px;
+  width: 100%;
+  max-width: 360px;
+  text-align: center;
+  animation: scene-in 0.6s var(--ease) both;
+}
+
+.scene__body h2 {
+  margin: 0;
+  font-size: 1.75rem;
+}
+
+.scene__body p {
+  margin: 0;
+}
+
+.scene__art {
+  font-size: 4.5rem;
+  line-height: 1;
+  animation: float 3s var(--ease) infinite;
+}
+
+.scene__sky {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.scene__spark {
+  position: absolute;
+  bottom: -10px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-accent-text);
+  opacity: 0;
+  animation: rise 4s linear infinite;
+}
+
+.scene--joy .scene__spark {
+  background: var(--color-accent-2);
+}
+
+.scene--sorrow .scene__spark {
+  width: 3px;
+  height: 3px;
+  background: var(--color-muted);
+  animation-duration: 7s;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes scene-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(12px);
+  }
+}
+
+@keyframes float {
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes rise {
+  10% {
+    opacity: 0.8;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-90dvh);
+  }
+}

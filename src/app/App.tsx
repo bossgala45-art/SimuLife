@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { DestinyError } from '../destiny/errors.ts'
 import { lifeTitle } from '../destiny/summary.ts'
 import type { DeclaredEvent } from '../destiny/types.ts'
@@ -8,8 +8,8 @@ import { clearGame, loadGame } from '../storage/savegame.ts'
 import DossierScreen from '../ui/dossier/DossierScreen.tsx'
 import { errorText } from '../ui/destiny/download.ts'
 import TreeScreen from '../ui/destiny/TreeScreen.tsx'
+import GameShell from '../ui/game/GameShell.tsx'
 import HomeScreen from '../ui/screens/HomeScreen.tsx'
-import LifeScreen from '../ui/screens/LifeScreen.tsx'
 import NewLifeScreen from '../ui/screens/NewLifeScreen.tsx'
 import { isStandalone } from '../ui/platform.ts'
 
@@ -32,6 +32,8 @@ export default function App({ repository }: { repository?: DestinyRepository }) 
   const persisted = useRef<BranchSession | null>(null)
   /** Les sauvegardes passent l'une après l'autre, dans l'ordre des actions. */
   const queue = useRef<Promise<void>>(Promise.resolve())
+  /** Chaque entrée dans une vie (ou une branche) repart d'une coque neuve. */
+  const [entry, setEntry] = useState(0)
 
   async function describeResume(): Promise<{ label: string; branchId: string } | null> {
     const [latest] = await repo.listTrees()
@@ -57,6 +59,7 @@ export default function App({ repository }: { repository?: DestinyRepository }) 
 
   async function enter(next: BranchSession) {
     persisted.current = next
+    setEntry((n) => n + 1)
     setSession(next)
     setSaveError(null)
     setBranchName(next.branchId ? (await repo.getBranch(next.branchId)).name : 'Sans sauvegarde')
@@ -70,6 +73,7 @@ export default function App({ repository }: { repository?: DestinyRepository }) 
       // Sans stockage, la vie reste jouable mais n'est pas sauvegardée.
       if (e instanceof DestinyError && e.code === 'STORAGE_UNAVAILABLE') {
         persisted.current = null
+        setEntry((n) => n + 1)
         setSession({ treeId: '', branchId: '', revision: 0, state })
         setBranchName('Sans sauvegarde')
         setSaveError(e.detail)
@@ -93,6 +97,13 @@ export default function App({ repository }: { repository?: DestinyRepository }) 
       }
     })
   }
+
+  const destiny = useMemo(
+    () => ({ repo, flush: () => queue.current, onOpen: (s: BranchSession) => void enter(s) }),
+    // `enter` ne dépend que de `repo` et des setters d'état.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [repo],
+  )
 
   async function leaveLife(to: Screen) {
     await queue.current
@@ -124,14 +135,16 @@ export default function App({ repository }: { repository?: DestinyRepository }) 
       )}
       {screen === 'new' && <NewLifeScreen onCreate={(state) => void startLife(state)} onCancel={() => setScreen('home')} />}
       {screen === 'life' && session && (
-        <LifeScreen
+        <GameShell
+          key={entry}
           state={session.state}
+          branchId={session.branchId}
           branchName={branchName}
           saveError={saveError}
           onRetrySave={() => update(session.state)}
           onChange={update}
-          onTree={session.branchId ? () => void leaveLife('tree') : undefined}
           onQuit={() => void leaveLife('home')}
+          destiny={destiny}
         />
       )}
       <div className="rotate-hint">

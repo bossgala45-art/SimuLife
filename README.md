@@ -2,9 +2,12 @@
 
 Application web (installable sur iPhone) simulant des vies alternatives réalistes.
 
-**État actuel (mission 5) :** arbre des destins (rejouer sa vie à partir d'un autre choix,
-branches indépendantes stockées dans IndexedDB), moteur de simulation avec proches autonomes,
-études, métiers et finances, dossier de vie (109 questions sur un objectif de 500).
+**État actuel (mission 6) :** interface de jeu mobile (onglets Vie, Temps, Social, Monde,
+Destins ; menu Santé, Études, Carrière, Finances, Compétences, Journal, Paramètres), avatar 3D
+léger avec repli 2D, cartes d'événements, scènes des grands moments, thèmes clair et sombre,
+musique et effets synthétisés. En dessous : arbre des destins (IndexedDB), moteur de simulation
+avec proches autonomes, études, métiers et finances, dossier de vie (109 questions sur un
+objectif de 500).
 
 ## Prérequis
 
@@ -156,6 +159,48 @@ Principes :
   d'argent, les diagnostics médicaux ou les coordonnées (vérifié par un test).
 - Le nombre de questions est vérifié par un test : il n'est annoncé que s'il est réel.
 
+## Interface de jeu (`src/ui/game/`, `src/ui/avatar/`, `src/ui/audio/`)
+
+- **Coque** (`GameShell.tsx`) : en-tête (nom, âge, date, heure, compte), barre inférieure
+  Vie / Temps / Social / Monde / Destins, menu en feuille Santé / Études / Carrière / Finances /
+  Compétences / Journal / Paramètres. Chaque écran lit l'état du moteur et n'agit que par
+  `performAction` ou `advance` ; aucun bouton ne simule une fonction absente.
+- **Avatar** : formes simples générées par le code (React Three Fiber, Three.js), sans modèle ni
+  texture externes, chargé à la demande. Son apparence vient du moteur (humeur → expression,
+  sommeil → yeux, fatigue → posture, maladie → teint, âge → cheveux gris, métier → tenue).
+  Sans WebGL, si la 3D est désactivée ou si le rendu échoue, un avatar 2D (SVG) prend le relais ;
+  le mode réel est affiché dans les Paramètres.
+- **Cartes du jour** (`cards.ts`) : faits marquants d'hier et d'aujourd'hui tirés du journal ;
+  certaines proposent une vraie action (appeler un proche malade, offrir un cadeau). Les cartes
+  lues sont mémorisées par branche (`localStorage`, `simulife.cards.<branche>`).
+- **Scènes** (`scenes.ts`) : plein écran pour le début d'une vie ou d'une branche, un diplôme,
+  une embauche, un anniversaire, une augmentation, un licenciement, un deuil, un décès.
+- **Agenda** (`agenda.ts`) : échéances réellement programmées (salaire, loyer, charges,
+  mensualités, examens, réponses de candidature, anniversaires des proches). Une échéance dont
+  l'issue dépend du hasard est marquée « Issue incertaine ».
+- **Son** (`audio/sound.ts`) : musique et effets synthétisés par la Web Audio API (aucun fichier,
+  donc aucune question de licence). Musique désactivée par défaut, volumes réglables, démarrage
+  après le premier toucher (exigence de Safari).
+- **Réglages** (`settings.ts`, `localStorage`, `simulife.settings.v1`) : thème automatique / clair
+  / sombre, animations selon l'iPhone / réduites / complètes, avatar 3D, musique, effets.
+
+### Vérifié dans Chromium (émulation iPhone 15, portrait)
+
+Rendu WebGL de l'avatar (via SwiftShader), repli 2D quand WebGL est désactivé, thèmes clair et
+sombre (conservés après rechargement), menu, cinq onglets et sept pages sans débordement
+horizontal, scène « Joyeux anniversaire » déclenchée par le moteur, message en paysage, aucune
+erreur dans la console.
+
+### Impossible à vérifier sans iPhone réel
+
+- Performances et chauffe de la 3D dans Safari iOS (fréquence d'images réelle, batterie).
+- Comportement du son : déverrouillage au premier toucher, interrupteur silencieux, coupure en
+  arrière-plan.
+- Zones sûres réelles (encoche, Dynamic Island, barre d'accueil) et mode « écran d'accueil ».
+- Ressenti tactile (défilement, appuis, flou d'arrière-plan des barres).
+- Quotas de stockage et nettoyage automatique de Safari sur la durée.
+- Perte du contexte WebGL en conditions réelles (mise en veille, changement d'application).
+
 ## Structure
 
 ```
@@ -173,9 +218,13 @@ Principes :
 │   │   ├── platform.ts       # détection du mode « écran d'accueil »
 │   │   ├── seed.ts           # graine aléatoire proposée par défaut
 │   │   ├── dossier/          # écrans du dossier de vie (+ tests)
-│   │   ├── life/             # onglets Proches, Parcours, Argent (+ tests)
+│   │   ├── game/             # coque du jeu, onglets, pages, cartes, scènes, agenda (+ tests)
+│   │   ├── avatar/           # avatar 3D (React Three Fiber) et repli 2D (+ tests)
+│   │   ├── audio/            # musique et effets synthétisés (+ tests)
+│   │   ├── life/             # sections réutilisées : proches, emploi, études, argent
 │   │   ├── destiny/          # écran de l'arbre, création de branche
-│   │   └── screens/          # Accueil, Nouvelle vie, Vie (+ tests)
+│   │   ├── settings.ts       # réglages de l'interface (+ tests)
+│   │   └── screens/          # Accueil, Nouvelle vie (+ tests)
 │   ├── styles/global.css     # styles globaux, zones sûres iPhone
 │   └── test/setup.ts         # configuration Vitest
 ├── eslint.config.js

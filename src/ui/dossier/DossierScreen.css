@@ -37,7 +37,7 @@
 .dossier__notice {
   margin: 0;
   padding: 10px 16px;
-  background: rgb(255 92 122 / 0.15);
+  background: var(--color-danger-soft);
   color: var(--color-danger);
   text-align: center;
 }
@@ -168,7 +168,7 @@
 }
 
 .question__private {
-  color: #c9b8ff;
+  color: var(--color-accent-text);
 }
 
 .question__error {
@@ -198,7 +198,7 @@
   width: 100%;
   min-height: 48px;
   padding: 10px 14px;
-  border: 1px solid #2c3254;
+  border: 1px solid var(--color-border);
   border-radius: 12px;
   background: var(--color-surface);
   color: var(--color-text);
@@ -226,7 +226,7 @@ textarea.answer-text {
   gap: 12px;
   min-height: 48px;
   padding: 10px 14px;
-  border: 1px solid #2c3254;
+  border: 1px solid var(--color-border);
   border-radius: 12px;
   background: var(--color-surface);
   cursor: pointer;
@@ -335,12 +335,12 @@ textarea.answer-text {
 }
 
 .issue--error {
-  background: rgb(255 92 122 / 0.15);
+  background: var(--color-danger-soft);
   color: var(--color-danger);
 }
 
 .issue--warning {
-  background: rgb(255 176 32 / 0.12);
+  background: var(--color-warning-soft);
   color: var(--color-warning);
 }
 
@@ -416,7 +416,7 @@ textarea.answer-text {
 }
 
 .card--simulated {
-  border: 1px dashed #4a4f73;
+  border: 1px dashed var(--color-border);
 }
 
 .card--simulated .hint {
