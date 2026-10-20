@@ -1,0 +1,81 @@
+.home {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 480px;
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding: calc(env(safe-area-inset-top) + 24px) calc(env(safe-area-inset-right) + 24px)
+    calc(env(safe-area-inset-bottom) + 24px) calc(env(safe-area-inset-left) + 24px);
+  gap: 32px;
+}
+
+.home__hero {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.home__logo {
+  width: 96px;
+  height: 96px;
+  margin-bottom: 20px;
+  border-radius: 22px;
+  box-shadow: 0 12px 40px rgb(124 92 255 / 0.35);
+}
+
+.home__title {
+  margin: 0;
+  font-size: clamp(2.25rem, 11vw, 3rem);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.home__tagline {
+  margin: 8px 0 0;
+  color: var(--color-muted);
+  font-size: 1.0625rem;
+}
+
+.home__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.home__note {
+  margin: -4px 0 4px;
+  color: var(--color-muted);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.home__about {
+  padding: 16px 20px;
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-muted);
+  font-size: 0.9375rem;
+}
+
+.home__about p {
+  margin: 0;
+}
+
+.home__about p + p {
+  margin-top: 8px;
+}
+
+.home__install {
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+  text-align: center;
+}
+
+.home__install strong {
+  color: var(--color-text);
+}
