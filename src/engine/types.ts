@@ -148,6 +148,7 @@ export type MemoryKind =
   | 'loan_repaid'
   | 'loan_unpaid'
   | 'diploma'
+  | 'reconnected'
 
 /** Souvenir relationnel : il pèse sur la relation tant qu'il est récent. */
 export interface Memory {

@@ -39,6 +39,15 @@ export function enrollmentReasons(state: SimulationState, program: ProgramDefini
   return reasons
 }
 
+/** Commence une formation : examen programmé à 10 h le jour où elle se termine. */
+export function startEnrollment(draft: SimulationState, programId: string): void {
+  const program = findProgram(programId)!
+  const endsAt = fromCalendar({ ...toCalendar(addMonths(draft.clock, program.durationMonths)), hour: 10, minute: 0 })
+  draft.education.enrollment = { program: program.id, since: draft.clock, endsAt, studyHours: 0 }
+  scheduleEvent(draft, endsAt, { type: 'exam', program: program.id })
+  writeLog(draft, 'event', 'enrolled', `Inscription : ${program.label}. Examen prévu le ${formatDate(endsAt)}.`)
+}
+
 /** Une séance d'étude : compte pour la formation en cours, sinon entretient la logique. */
 export function studySession(draft: SimulationState): void {
   const enrollment = draft.education.enrollment
@@ -107,14 +116,7 @@ export const EDUCATION_ACTIONS: ActionDefinition[] = [
         message: (s, p) => enrollmentReasons(s, findProgram(p.program!)!).join(' ; '),
       },
     ],
-    onComplete(draft, p) {
-      const program = findProgram(p.program!)!
-      // Examen à 10 h, le jour où la formation se termine.
-      const endsAt = fromCalendar({ ...toCalendar(addMonths(draft.clock, program.durationMonths)), hour: 10, minute: 0 })
-      draft.education.enrollment = { program: program.id, since: draft.clock, endsAt, studyHours: 0 }
-      scheduleEvent(draft, endsAt, { type: 'exam', program: program.id })
-      writeLog(draft, 'event', 'enrolled', `Inscription : ${program.label}. Examen prévu le ${formatDate(endsAt)}.`)
-    },
+    onComplete: (draft, p) => startEnrollment(draft, p.program!),
   },
   {
     ...BASE,

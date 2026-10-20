@@ -241,6 +241,7 @@ textarea.answer-text {
 
 .choice input,
 .check input {
+  flex-shrink: 0;
   width: 20px;
   height: 20px;
   margin: 0;

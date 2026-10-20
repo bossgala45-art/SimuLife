@@ -34,6 +34,7 @@ const MEMORY_KINDS: MemoryKind[] = [
   'loan_repaid',
   'loan_unpaid',
   'diploma',
+  'reconnected',
 ]
 
 export function serializeState(state: SimulationState): string {
