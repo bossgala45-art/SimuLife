@@ -1,0 +1,66 @@
+.newlife {
+  width: 100%;
+  max-width: 480px;
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding: calc(env(safe-area-inset-top) + 24px) calc(env(safe-area-inset-right) + 24px)
+    calc(env(safe-area-inset-bottom) + 24px) calc(env(safe-area-inset-left) + 24px);
+}
+
+.newlife__title {
+  margin: 0 0 24px;
+  font-size: 1.75rem;
+}
+
+.newlife__form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--color-muted);
+  font-size: 0.9375rem;
+}
+
+.field input {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 14px;
+  border: 1px solid #2c3254;
+  border-radius: 12px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 1rem;
+}
+
+.field input:focus {
+  outline: 2px solid var(--color-accent-2);
+  outline-offset: 1px;
+}
+
+.field small {
+  font-size: 0.8125rem;
+}
+
+.field__row {
+  display: flex;
+  gap: 8px;
+}
+
+.btn--small {
+  width: auto;
+  min-height: 48px;
+  padding: 10px 14px;
+  font-size: 0.9375rem;
+}
+
+.newlife__error {
+  margin: 0;
+  color: var(--color-danger);
+}
