@@ -346,3 +346,9 @@ Les vies et leurs branches (IndexedDB, base `simulife`) et le dossier de vie
 (`localStorage`, `simulife.dossier.v1`) sont enregistrés uniquement sur l'appareil, après
 chaque action ou réponse. Rien n'est envoyé à un serveur sans autorisation explicite. L'export produit un fichier que
 seul l'utilisateur partage s'il le souhaite.
+
+## Licence
+
+Copyright (c) 2026 bossgala45-art. **Tous droits réservés** : le code est visible mais aucune
+licence de réutilisation n'est accordée (voir [LICENSE](LICENSE)). Les bibliothèques tierces
+restent sous leurs propres licences ([LICENCES-TIERS.md](LICENCES-TIERS.md)).
