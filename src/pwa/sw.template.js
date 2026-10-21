@@ -4,7 +4,8 @@
  * - Pages : réseau d'abord, puis copie locale si l'appareil est hors ligne.
  * - services.json : réseau d'abord (la carte peut être coupée sans mise à jour).
  * - Autres sites (cartes OpenStreetMap…) : jamais interceptés ni stockés par l'application.
- * Une nouvelle version s'active quand toutes les fenêtres de l'application sont fermées.
+ * Une nouvelle version attend l'accord de l'application (message SKIP_WAITING), qui choisit
+ * un moment sans risque pour recharger, ou s'active quand toutes ses fenêtres sont fermées.
  */
 const VERSION = '__VERSION__'
 const CACHE = `simulife-${VERSION}`
@@ -12,6 +13,10 @@ const PRECACHE = __PRECACHE__
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(PRECACHE)))
+})
+
+self.addEventListener('message', (event) => {
+  if (event.data === 'SKIP_WAITING') self.skipWaiting()
 })
 
 self.addEventListener('activate', (event) => {

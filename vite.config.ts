@@ -29,6 +29,11 @@ function serviceWorker(): Plugin {
 export default defineConfig({
   // Chemin de publication : « / » par défaut, « /SimuLife/ » pour GitHub Pages (voir README).
   base: process.env.SIMULIFE_BASE ?? '/',
+  // Version affichée dans « À propos » : commit publié (GitHub Actions) ou « locale ».
+  define: {
+    __APP_VERSION__: JSON.stringify(process.env.GITHUB_SHA?.slice(0, 7) ?? 'locale'),
+    __APP_BUILT_AT__: JSON.stringify(new Date().toISOString().slice(0, 10)),
+  },
   plugins: [react(), serviceWorker()],
   test: {
     environment: 'jsdom',

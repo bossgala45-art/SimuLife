@@ -197,3 +197,32 @@ button {
   clip-path: inset(50%);
   white-space: nowrap;
 }
+
+/* Nouvelle version prête (au-dessus de tout, sous l'encoche). */
+.update-banner {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 480px;
+  padding: calc(env(safe-area-inset-top) + 8px) 12px 8px;
+  transform: translateX(-50%);
+  background: var(--color-surface-2);
+  box-shadow: var(--shadow);
+  font-size: 0.875rem;
+}
+
+.update-banner span {
+  flex: 1;
+}
+
+.update-banner .btn {
+  width: auto;
+  min-height: 44px;
+  padding: 8px 14px;
+  font-size: 0.875rem;
+}

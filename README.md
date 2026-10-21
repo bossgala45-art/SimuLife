@@ -49,11 +49,17 @@ indispensable pour l'installation sur iPhone, le service worker et le chiffremen
 4. Recommandé : servir `sw.js` et `index.html` sans cache long (les autres fichiers ont des noms
    uniques et peuvent être mis en cache longtemps).
 
-**GitHub Pages** (dépôt `SimuLife`, adresse `https://<compte>.github.io/SimuLife/`) : le fichier
-`.github/workflows/deploy-pages.yml` publie l'application **uniquement quand on le lance à la main**.
-Dans le dépôt : Settings → Pages → Source : « GitHub Actions », puis Actions → « Publier sur GitHub
-Pages (manuel) » → Run workflow. Il exécute lint, typage, tests et construction avec le bon chemin
-(`/SimuLife/`) avant de publier. Rien n'est publié automatiquement.
+**GitHub Pages** (en ligne : https://bossgala45-art.github.io/SimuLife/) : le fichier
+`.github/workflows/deploy-pages.yml` publie l'application **automatiquement à chaque modification de
+la branche `main`**, après lint, typage, tests et construction avec le bon chemin (`/SimuLife/`).
+Si une vérification échoue, rien n'est publié et la version en ligne reste la précédente.
+On peut aussi relancer la publication à la main : Actions → « Publier sur GitHub Pages » → Run
+workflow. Prérequis (déjà fait) : Settings → Pages → Source : « GitHub Actions ».
+
+**Mise à jour sur l'iPhone** : l'application installée cherche une nouvelle version à chaque
+ouverture et à chaque retour au premier plan. À l'accueil, elle s'installe d'elle-même ; pendant
+une partie, un bandeau propose « Mettre à jour » (les sauvegardes en cours sont terminées avant le
+rechargement, rien n'est perdu). La version installée est indiquée dans « À propos ».
 
 Pour couper la carte sans republier le code : mettre `"enabled": false` dans `services.json` sur
 l'hébergement.
