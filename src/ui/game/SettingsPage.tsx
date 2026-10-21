@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { CONSENT_PURPOSES, loadConsents, revokeConsent, type ConsentId } from '../../ai/consent.ts'
+import type { NarrativeAiAdapter } from '../../ai/narrativeAi.ts'
 import { sound } from '../audio/sound.ts'
 import { avatar3dFailed, avatarMode } from '../avatar/webgl.ts'
 import type { Settings } from '../settings.ts'
@@ -52,9 +54,10 @@ function Volume({ label, value, disabled, onChange }: { label: string; value: nu
 }
 
 /** Réglages réels : thème, animations, avatar, musique, effets, stockage. */
-export default function SettingsPage() {
+export default function SettingsPage({ ai }: { ai: NarrativeAiAdapter }) {
   const { settings, update, persisted } = useSettings()
   const [storage, setStorage] = useState<Storage>(null)
+  const [consents, setConsents] = useState(() => loadConsents())
 
   useEffect(() => {
     const api = typeof navigator !== 'undefined' ? navigator.storage : undefined
@@ -115,6 +118,37 @@ export default function SettingsPage() {
           Tester les effets
         </button>
         <p className="hint">Musique et effets sont synthétisés par l’application (aucun fichier audio). Sur iPhone, le mode silencieux peut couper le son.</p>
+      </section>
+
+      <section className="card" aria-labelledby="ai-title">
+        <h2 id="ai-title">IA externe</h2>
+        <p data-testid="ai-status">{ai.available ? `Active : ${ai.label}.` : ai.unavailableReason}</p>
+        <p className="hint">Dialogues, messages et actions libres fonctionnent par des règles, sans IA ni connexion.</p>
+      </section>
+
+      <section className="card" aria-labelledby="consent-title">
+        <h2 id="consent-title">Autorisations d’envoi</h2>
+        {(Object.keys(consents) as ConsentId[]).length === 0 ? (
+          <p className="hint">Aucune autorisation durable : rien n’est envoyé sans te le demander.</p>
+        ) : (
+          <ul className="plain">
+            {(Object.keys(consents) as ConsentId[]).map((id) => (
+              <li key={id}>
+                {CONSENT_PURPOSES[id].title} — accordée le {new Date(consents[id]!.grantedAt).toLocaleDateString('fr-FR')}{' '}
+                <button
+                  type="button"
+                  className="link link--danger"
+                  onClick={() => {
+                    revokeConsent(id)
+                    setConsents(loadConsents())
+                  }}
+                >
+                  Retirer
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <section className="card" aria-labelledby="storage-title">

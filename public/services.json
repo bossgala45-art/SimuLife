@@ -1,0 +1,8 @@
+{
+  "map": {
+    "enabled": true,
+    "search": "https://nominatim.openstreetmap.org/search",
+    "tiles": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    "copyright": "https://www.openstreetmap.org/copyright"
+  }
+}

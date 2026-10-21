@@ -41,6 +41,9 @@ export type ActionId =
   | 'deposit_savings'
   | 'withdraw_savings'
   | 'bank_loan'
+  // Dialogues
+  | 'talk'
+  | 'write'
 
 /** Paramètres d'une action (cible, métier, formation, compétence, montant). */
 export interface ActionParams {
@@ -49,6 +52,10 @@ export interface ActionParams {
   program?: string
   skill?: SkillId
   amount?: number
+  /** Sujet de conversation (voir `dialogue.ts`). */
+  topic?: string
+  /** Texte libre d'un message (affiché tel quel, sans effet propre). */
+  text?: string
 }
 
 export interface CalendarDate {
@@ -90,6 +97,7 @@ export type GameEvent =
   | { type: 'exam'; program: string }
   | { type: 'npc_recovered'; personId: string }
   | { type: 'illness_recovered' }
+  | { type: 'npc_message'; personId: string; text: string }
 
 export type GameEventType = GameEvent['type']
 
@@ -236,8 +244,73 @@ export interface Finances {
   lastMonth: { income: number; expenses: number } | null
 }
 
+// ——— Narration ———
+
+/** Canal d'un échange : message écrit ou conversation en personne. */
+export type Channel = 'message' | 'person'
+
+export interface Message {
+  id: number
+  at: number
+  /** 'player' ou identifiant du proche. */
+  from: string
+  channel: Channel
+  text: string
+  read: boolean
+}
+
+export type StoryTone = 'good' | 'bad' | 'neutral'
+
+/** Souvenir narratif : un fait important de la vie, conservé durablement (contrairement au journal). */
+export interface StoryMemory {
+  id: number
+  at: number
+  /** Code de l'entrée de journal d'origine (diploma, hired, npc_death…). */
+  kind: string
+  text: string
+  tone: StoryTone
+  /** 1 = notable, 3 = marquant. */
+  importance: 1 | 2 | 3
+  /** Proches concernés. */
+  people: string[]
+}
+
+/** Conversation en cours : chaque sujet n'est abordé qu'une fois par conversation. */
+export interface ConversationSession {
+  personId: string
+  channel: Channel
+  startedAt: number
+  lastAt: number
+  topics: string[]
+}
+
+export interface Narrative {
+  /** Fil de discussion par proche (les plus anciens messages sont effacés au-delà de la limite). */
+  threads: Record<string, Message[]>
+  nextMessageId: number
+  memories: StoryMemory[]
+  nextMemoryId: number
+  /** Souvenirs déjà racontés ou sujets déjà traités, par proche (identifiants). */
+  shared: Record<string, string[]>
+  session: ConversationSession | null
+}
+
+/** Lieu géocodé, choisi par le joueur (jamais inventé). */
+export interface Place {
+  label: string
+  lat: number
+  lon: number
+  /** Service d'où viennent les coordonnées et licence des données. */
+  source: string
+  licence: string
+}
+
+export interface World {
+  home: Place | null
+}
+
 export interface SimulationState {
-  version: 2
+  version: 3
   /** Graine d'origine, telle que saisie. */
   seed: string
   /** État courant du générateur pseudo-aléatoire (entier 32 bits non signé). */
@@ -259,6 +332,8 @@ export interface SimulationState {
   finances: Finances
   /** Imprévus : date jusqu'à laquelle chacun ne peut pas se reproduire. */
   cooldowns: Record<string, number>
+  narrative: Narrative
+  world: World
 }
 
 export interface ValidationIssue {
@@ -301,3 +376,7 @@ export type ValidationCode =
   | 'INVALID_AMOUNT'
   | 'LOAN_LIMIT'
   | 'TOO_YOUNG'
+  | 'UNKNOWN_TOPIC'
+  | 'TOPIC_UNAVAILABLE'
+  | 'INVALID_TEXT'
+  | 'INVALID_PLACE'

@@ -21,7 +21,14 @@ function Harness({ initial }: { initial: SimulationState }) {
   const [state, setState] = useState(initial)
   return (
     <SettingsProvider initial={DEFAULT_SETTINGS}>
-      <GameShell state={state} onChange={setState} onQuit={() => {}} branchId="" branchName="Sans sauvegarde" />
+      <GameShell
+        state={state}
+        onChange={setState}
+        onQuit={() => {}}
+        branchId=""
+        branchName="Sans sauvegarde"
+        mapServices={() => Promise.resolve({ enabled: false, search: '', tiles: '', copyright: '', reason: 'test' })}
+      />
     </SettingsProvider>
   )
 }
@@ -67,7 +74,7 @@ describe('coque du jeu', () => {
     expect(sleep.textContent).toContain('Pas sommeil (sommeil < 30).')
   })
 
-  it('les cinq onglets et les sept pages du menu existent', async () => {
+  it('les cinq onglets et les neuf pages du menu existent', async () => {
     const user = await play()
     expect(within(nav()).getAllByRole('button').map((b) => b.textContent)).toEqual(['Vie', 'Temps', 'Social', 'Monde', 'Destins'])
     await user.click(screen.getByRole('button', { name: 'Menu' }))
@@ -78,6 +85,8 @@ describe('coque du jeu', () => {
       '💼Carrière',
       '💶Finances',
       '⭐Compétences',
+      '💬Messages',
+      '📜Souvenirs',
       '📖Journal',
       '⚙️Paramètres',
     ])

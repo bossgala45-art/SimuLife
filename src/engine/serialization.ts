@@ -2,7 +2,8 @@
  * Sauvegarde : l'état complet (dont la graine et l'état du générateur) est
  * converti en JSON. Le chargement vérifie chaque champ et signale précisément
  * la première anomalie rencontrée. Une sauvegarde de version 1 (avant les
- * systèmes sociaux et économiques) est migrée vers la version 2.
+ * systèmes sociaux et économiques) est migrée vers la version 2, puis toute
+ * sauvegarde de version 2 vers la version 3 (narration, messages, lieu).
  */
 import { emptyCareer, PAYDAY, PAYDAY_HOUR, startJob } from './careers.ts'
 import { findCareer, findDiploma, findProgram, SKILLS } from './data/careers.ts'
@@ -15,8 +16,9 @@ import { createEntourage } from './people.ts'
 import { scheduleEvent } from './schedule.ts'
 import { DEFAULT_CAREER } from './simulation.ts'
 import { emptySkills } from './skills.ts'
+import { emptyNarrative, emptyWorld, recordFromLog } from './story.ts'
 import { isValidDate, nextMonthlyOccurrence } from './time.ts'
-import type { AttributeId, GameEvent, LogKind, MemoryKind, PersonRole, SimulationState } from './types.ts'
+import type { AttributeId, Channel, GameEvent, LogKind, MemoryKind, PersonRole, SimulationState, StoryTone } from './types.ts'
 
 const ATTRIBUTE_IDS: AttributeId[] = ['health', 'fitness', 'intelligence', 'sociability']
 const LOG_KINDS: LogKind[] = ['action', 'event', 'warning', 'day', 'system', 'social', 'money']
@@ -49,13 +51,25 @@ export function parseState(json: string): SimulationState {
     throw invalid('le contenu n’est pas du JSON valide')
   }
   assertState(raw)
-  return raw.version === 2 ? raw : migrateV1(raw)
+  const version = (raw as { version: number }).version
+  if (version === 3) return raw
+  return migrateV2(version === 1 ? migrateV1(raw) : raw)
+}
+
+/** Version 2 → 3 : narration (souvenirs reconstitués depuis le journal, messages vides) et lieu inconnu. */
+function migrateV2(state: SimulationState): SimulationState {
+  const s = state as SimulationState & { version: number }
+  s.version = 3
+  s.narrative = emptyNarrative()
+  s.world = emptyWorld()
+  recordFromLog(s, s.log)
+  return s
 }
 
 /** Version 1 → 2 : entourage, emploi de départ, finances et échéances mensuelles. */
 function migrateV1(state: SimulationState): SimulationState {
-  const s = state as SimulationState & { version: number }
-  s.version = 2
+  const s = state
+  ;(s as { version: number }).version = 2
   s.people = []
   s.relationships = {}
   s.nextPersonId = 1
@@ -102,6 +116,7 @@ function assertEvent(v: unknown, path: string): asserts v is GameEvent {
   }
   if (e.type === 'exam' && (typeof e.program !== 'string' || !findProgram(e.program))) throw invalid(`${path}.program inconnu`)
   if (e.type === 'npc_recovered' && typeof e.personId !== 'string') throw invalid(`${path}.personId manquant`)
+  if (e.type === 'npc_message' && (typeof e.personId !== 'string' || typeof e.text !== 'string')) throw invalid(`${path} : personId et text attendus`)
 }
 
 const nullableInt = (v: unknown, path: string) => {
@@ -208,9 +223,64 @@ function assertV2(s: Obj): void {
   for (const [id, until] of Object.entries(obj(s.cooldowns, 'cooldowns'))) int(until, `cooldowns.${id}`)
 }
 
+const CHANNELS: Channel[] = ['message', 'person']
+const TONES: StoryTone[] = ['good', 'bad', 'neutral']
+
+/** Champs ajoutés en version 3 : narration et lieu. */
+function assertV3(s: Obj): void {
+  const people = new Set(list(s.people, 'people').map((p) => (p as Obj).id as string))
+  const n = obj(s.narrative, 'narrative')
+  int(n.nextMessageId, 'narrative.nextMessageId')
+  int(n.nextMemoryId, 'narrative.nextMemoryId')
+  for (const [id, thread] of Object.entries(obj(n.threads, 'narrative.threads'))) {
+    if (!people.has(id)) throw invalid(`narrative.threads.${id} ne correspond à aucune personne`)
+    list(thread, `narrative.threads.${id}`).forEach((item, i) => {
+      const m = obj(item, `narrative.threads.${id}[${i}]`)
+      const path = `narrative.threads.${id}[${i}]`
+      int(m.id, `${path}.id`)
+      int(m.at, `${path}.at`)
+      if (m.from !== 'player' && m.from !== id) throw invalid(`${path}.from invalide`)
+      if (!CHANNELS.includes(m.channel as Channel)) throw invalid(`${path}.channel inconnu`)
+      if (typeof m.text !== 'string' || m.text.length > 1000) throw invalid(`${path}.text invalide`)
+      if (typeof m.read !== 'boolean') throw invalid(`${path}.read doit être un booléen`)
+    })
+  }
+  list(n.memories, 'narrative.memories').forEach((item, i) => {
+    const m = obj(item, `narrative.memories[${i}]`)
+    const path = `narrative.memories[${i}]`
+    int(m.id, `${path}.id`)
+    int(m.at, `${path}.at`)
+    str(m.kind, `${path}.kind`)
+    str(m.text, `${path}.text`)
+    if (!TONES.includes(m.tone as StoryTone)) throw invalid(`${path}.tone inconnu`)
+    if (m.importance !== 1 && m.importance !== 2 && m.importance !== 3) throw invalid(`${path}.importance invalide`)
+    if (!list(m.people, `${path}.people`).every((p) => typeof p === 'string')) throw invalid(`${path}.people invalide`)
+  })
+  for (const [id, items] of Object.entries(obj(n.shared, 'narrative.shared'))) {
+    if (!list(items, `narrative.shared.${id}`).every((x) => typeof x === 'string')) throw invalid(`narrative.shared.${id} invalide`)
+  }
+  if (n.session !== null) {
+    const c = obj(n.session, 'narrative.session')
+    if (typeof c.personId !== 'string' || !people.has(c.personId)) throw invalid('narrative.session.personId inconnu')
+    if (!CHANNELS.includes(c.channel as Channel)) throw invalid('narrative.session.channel inconnu')
+    int(c.startedAt, 'narrative.session.startedAt')
+    int(c.lastAt, 'narrative.session.lastAt')
+    if (!list(c.topics, 'narrative.session.topics').every((x) => typeof x === 'string')) throw invalid('narrative.session.topics invalide')
+  }
+  const w = obj(s.world, 'world')
+  if (w.home !== null) {
+    const h = obj(w.home, 'world.home')
+    str(h.label, 'world.home.label')
+    num(h.lat, 'world.home.lat', -90, 90)
+    num(h.lon, 'world.home.lon', -180, 180)
+    str(h.source, 'world.home.source')
+    str(h.licence, 'world.home.licence')
+  }
+}
+
 function assertState(v: unknown): asserts v is SimulationState {
   const s = obj(v, 'état')
-  if (s.version !== 1 && s.version !== 2) throw invalid(`version ${String(s.version)} non prise en charge`)
+  if (s.version !== 1 && s.version !== 2 && s.version !== 3) throw invalid(`version ${String(s.version)} non prise en charge`)
   if (typeof s.seed !== 'string' || s.seed.length === 0) throw invalid('seed manquante')
   int(s.rngState, 'rngState')
   num(s.rngState, 'rngState', 0, 0xffffffff)
@@ -248,5 +318,6 @@ function assertState(v: unknown): asserts v is SimulationState {
     if (!LOG_KINDS.includes(e.kind as LogKind)) throw invalid(`log[${i}].kind inconnu`)
     if (typeof e.code !== 'string' || typeof e.message !== 'string') throw invalid(`log[${i}] incomplet`)
   })
-  if (s.version === 2) assertV2(s)
+  if (s.version !== 1) assertV2(s)
+  if (s.version === 3) assertV3(s)
 }

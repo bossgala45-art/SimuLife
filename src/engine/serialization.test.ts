@@ -18,7 +18,7 @@ describe('sauvegarde', () => {
       return () => parseState(JSON.stringify(raw))
     }
     expect(() => parseState('pas du json')).toThrow(/pas du JSON valide/)
-    expect(corrupt((r) => (r.version = 3))).toThrow(/version 3 non prise en charge/)
+    expect(corrupt((r) => (r.version = 4))).toThrow(/version 4 non prise en charge/)
     expect(corrupt((r) => (r.character.needs.hunger = 150))).toThrow(/character\.needs\.hunger/)
     expect(corrupt((r) => (r.clock = 1.5))).toThrow(/clock doit être un entier/)
     expect(corrupt((r) => (r.scheduled[0].event.type = 'meteorite'))).toThrow(/type inconnu \(meteorite\)/)

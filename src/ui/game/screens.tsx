@@ -30,6 +30,9 @@ import ActionButton from '../life/ActionButton.tsx'
 import MoneyPanel from '../life/MoneyPanel.tsx'
 import PeoplePanel from '../life/PeoplePanel.tsx'
 import { CareersCatalog, JobSection, ProgramsCatalog, SkillsSection, StudySection } from '../life/sections.tsx'
+import type { MapServices } from '../map/osm.ts'
+import MapCard from '../narrative/MapCard.tsx'
+import { FreeAction, HistorySection } from '../narrative/pages.tsx'
 import { agenda } from './agenda.ts'
 import type { EventCard } from './cards.ts'
 import EventCards from './EventCards.tsx'
@@ -132,6 +135,7 @@ export function VieTab({ state, onResult, cards, onDismiss, onDismissAll }: Prop
         <Statuses state={state} />
       </section>
       <EventCards state={state} cards={cards} onDismiss={onDismiss} onDismissAll={onDismissAll} onResult={onResult} />
+      <FreeAction state={state} onResult={onResult} />
       <NeedsCard state={state} />
       <section className="card" aria-labelledby="actions-title">
         <h2 id="actions-title">Actions</h2>
@@ -212,11 +216,13 @@ export function TempsTab({ state, onResult }: Props) {
   )
 }
 
-export function SocialTab({ state, onResult }: Props) {
-  return <PeoplePanel state={state} onResult={onResult} />
+export function SocialTab({ state, onResult, onTalk }: Props & { onTalk: (personId: string) => void }) {
+  return <PeoplePanel state={state} onResult={onResult} onTalk={onTalk} />
 }
 
-export function MondeTab({ state, onResult }: Props) {
+type WorldProps = { onState: (state: SimulationState) => void; loadServices: () => Promise<MapServices> }
+
+export function MondeTab({ state, onResult, onState, loadServices }: Props & WorldProps) {
   const bills = MONTHLY_BILLS.reduce((sum, b) => sum + b.value, 0)
   return (
     <>
@@ -240,6 +246,8 @@ export function MondeTab({ state, onResult }: Props) {
         </dl>
         <p className="hint">{APPROXIMATE_NOTE}</p>
       </section>
+      <MapCard state={state} onState={onState} loadServices={loadServices} />
+      <HistorySection state={state} />
       <CareersCatalog state={state} onResult={onResult} />
       <ProgramsCatalog state={state} onResult={onResult} />
     </>

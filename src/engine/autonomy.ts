@@ -43,12 +43,14 @@ function updatePerson(draft: SimulationState, person: Person): void {
   const rel = draft.relationships[person.id]
 
   if (age >= RETIREMENT_AGE && person.occupation !== 'retired' && person.occupation !== 'student') {
-    writeLog(draft, 'social', 'npc_retired', `${person.name} part à la retraite.`)
+    writeLog(draft, 'social', 'npc_retired', `${person.name} part à la retraite.`, { personId: person.id })
     person.occupation = 'retired'
   }
   if (person.occupation === 'student' && age >= 23) {
     person.occupation = CAREERS[Math.floor(drawRandom(draft) * CAREERS.length)].id
-    writeLog(draft, 'social', 'npc_first_job', `${person.name} a terminé ses études et travaille comme ${occupationLabel(person.occupation)}.`)
+    writeLog(draft, 'social', 'npc_first_job', `${person.name} a terminé ses études et travaille comme ${occupationLabel(person.occupation)}.`, {
+      personId: person.id,
+    })
   }
 
   if (person.sickSince === null) {
@@ -67,11 +69,15 @@ function updatePerson(draft: SimulationState, person: Person): void {
 
   if (person.occupation !== 'retired' && person.occupation !== 'student' && chance(draft, DAILY.jobChange)) {
     person.occupation = CAREERS[Math.floor(drawRandom(draft) * CAREERS.length)].id
-    writeLog(draft, 'social', 'npc_job_change', `${person.name} change de travail : ${occupationLabel(person.occupation)}.`)
+    writeLog(draft, 'social', 'npc_job_change', `${person.name} change de travail : ${occupationLabel(person.occupation)}.`, {
+      personId: person.id,
+    })
   }
   if (person.role !== 'colleague' && chance(draft, DAILY.move)) {
     person.distant = !person.distant
-    writeLog(draft, 'social', 'npc_moved', `${person.name} déménage ${person.distant ? 'loin de chez toi' : 'près de chez toi'}.`)
+    writeLog(draft, 'social', 'npc_moved', `${person.name} déménage ${person.distant ? 'loin de chez toi' : 'près de chez toi'}.`, {
+      personId: person.id,
+    })
   }
 
   if (!rel) return

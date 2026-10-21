@@ -18,7 +18,7 @@ export interface Precondition {
   message: string | ((state: SimulationState, params: ActionParams) => string)
 }
 
-export type ParamKind = 'person' | 'career' | 'program' | 'skill' | 'amount'
+export type ParamKind = 'person' | 'career' | 'program' | 'skill' | 'amount' | 'topic'
 
 /** Issue incertaine d'une action, affichée AVANT de la choisir. */
 export interface Outcome {

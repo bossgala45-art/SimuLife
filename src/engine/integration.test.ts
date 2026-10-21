@@ -166,7 +166,7 @@ describe('règles transversales', () => {
       nextLogSeq: v2.nextLogSeq,
     }
     const migrated = parseState(JSON.stringify(v1))
-    expect(migrated.version).toBe(2)
+    expect(migrated.version).toBe(3)
     expect(migrated.career.job!.career).toBe('cashier')
     expect(migrated.people.length).toBeGreaterThan(0)
     expect(ok(advance(migrated, 'month')).character.alive).toBe(true)
