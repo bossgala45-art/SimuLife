@@ -94,7 +94,7 @@ iPhone, taille de texte dynamique d'iOS, navigation au clavier complète.
 18 bibliothèques embarquées : MIT (16), Apache-2.0 (1), BSD-3-Clause (1), toutes compatibles.
 Textes complets publiés avec l'application (`licences-tiers.txt`, lien dans « À propos »).
 Icônes, avatar et sons sont créés pour le projet ; carte et citations attribuées
-(détail : `LICENCES-TIERS.md`). La licence du code de SIMULIFE n'est pas encore choisie.
+(détail : `LICENCES-TIERS.md`). Le code de SIMULIFE est sous « tous droits réservés » (`LICENSE`).
 
 ### 10. Confidentialité et suppression des données — ajouté et vérifié
 Nouveau : « Effacer toutes mes données » (accueil → Confidentialité et données, ou Paramètres)
@@ -170,5 +170,4 @@ Non vérifié : ajout réel à l'écran d'accueil d'un iPhone et comportement de
 - Sauvegardes volumineuses : ≈ 400 à 600 Ko par état, un export de 10 ans avec une branche ≈ 3,5 Mo.
 - Économie, salaires, pensions : ordres de grandeur non vérifiés, marqués comme approximatifs.
 - Le fichier JavaScript principal dépasse 500 Ko avant compression (184 Ko compressé).
-- Licence du code de SIMULIFE à choisir par son propriétaire.
-- Rien n'a été publié : la publication attend l'accord du propriétaire.
+- Publication : accord donné par le propriétaire le 21 octobre 2026 (GitHub Pages).

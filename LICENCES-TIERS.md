@@ -39,4 +39,4 @@ Les textes complets sont publiés avec l'application dans `licences-tiers.txt` (
 | Repères historiques | Courtes citations de Wikipédia (fr), avec lien | Citations courtes attribuées ; textes Wikipédia sous CC BY-SA 4.0 |
 | Montants économiques | Ordres de grandeur saisis pour le jeu | Marqués « approximatifs, non vérifiés » dans l'interface |
 
-La licence du code de SIMULIFE lui-même n'a pas encore été choisie : c'est une décision du propriétaire du projet.
+Le code de SIMULIFE lui-même est sous « tous droits réservés » : voir le fichier `LICENSE`.
