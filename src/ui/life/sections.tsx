@@ -59,6 +59,7 @@ export function JobSection({ state, onResult }: Props) {
       ) : (
         <p>
           Sans emploi.
+          {state.career.pension !== null && ` À la retraite : pension ≈ ${state.career.pension} € / mois (montant approximatif).`}
           {state.career.benefit && ` Allocation chômage ≈ ${state.career.benefit.amount} € / mois (${state.career.benefit.remaining} versements restants).`}
         </p>
       )}

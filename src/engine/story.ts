@@ -49,6 +49,7 @@ export const STORY_RULES: Record<string, StoryRule> = {
   hired: { tone: 'good', importance: 3 },
   layoff: { tone: 'bad', importance: 3 },
   quit: { tone: 'neutral', importance: 2 },
+  retired: { tone: 'good', importance: 3 },
   raise: { tone: 'good', importance: 2 },
   bank_loan_granted: { tone: 'neutral', importance: 1 },
   debt_closed: { tone: 'good', importance: 2 },

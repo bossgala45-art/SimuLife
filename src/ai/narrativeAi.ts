@@ -75,13 +75,18 @@ export function createProxyAdapter(endpoint: string, fetchFn: typeof fetch = fet
       const controller = new AbortController()
       const timer = setTimeout(() => controller.abort(), timeoutMs)
       try {
-        const res = await fetchFn(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(request),
-          signal: controller.signal,
-          credentials: 'omit',
-        })
+        let res: Response
+        try {
+          res = await fetchFn(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(request),
+            signal: controller.signal,
+            credentials: 'omit',
+          })
+        } catch (e) {
+          throw new Error(controller.signal.aborted ? 'Le service d’IA ne répond pas (délai dépassé).' : 'Pas de connexion au service d’IA.', { cause: e })
+        }
         if (!res.ok) throw new Error(`Le service d’IA a répondu ${res.status}.`)
         return await res.json()
       } finally {

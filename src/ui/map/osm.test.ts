@@ -67,6 +67,16 @@ describe('recherche de lieu (Nominatim)', () => {
     await expect(new Geocoder(SERVICES, strictFetch as unknown as typeof fetch).search('Lieu')).resolves.toEqual([])
   })
 
+  it('erreurs réseau : messages clairs, rien d’enregistré', async () => {
+    const offline = new Geocoder(SERVICES, (() => Promise.reject(new TypeError('Failed to fetch'))) as unknown as typeof fetch)
+    await expect(offline.search('Lyon')).rejects.toThrow('Pas de connexion : la recherche de lieu est impossible pour l’instant.')
+    const limited = new Geocoder(SERVICES, (() => json({}, 429)) as unknown as typeof fetch)
+    await expect(limited.search('Lyon')).rejects.toThrow(/limite les requêtes/)
+    const garbage = new Geocoder(SERVICES, (() => Promise.resolve(new Response('<html>'))) as unknown as typeof fetch)
+    await expect(garbage.search('Lyon')).rejects.toThrow('Réponse illisible du service de recherche.')
+    expect(localStorage.getItem('simulife.geocache.v1')).toBeNull()
+  })
+
   it('un lieu choisi garde sa source et sa licence', () => {
     expect(toPlace({ label: 'Lieu', lat: 1, lon: 2 })).toMatchObject({ source: 'OpenStreetMap (Nominatim)', licence: expect.stringContaining('ODbL') })
   })

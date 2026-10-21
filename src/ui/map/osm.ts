@@ -135,9 +135,20 @@ export class Geocoder {
     this.last = this.now()
     // `fetch` doit être appelé sans `this` (sinon « Illegal invocation » dans le navigateur).
     const fetchFn = this.fetchFn
-    const res = await fetchFn(searchUrl(this.services, key), { headers: { Accept: 'application/json' }, credentials: 'omit' })
+    let res: Response
+    try {
+      res = await fetchFn(searchUrl(this.services, key), { headers: { Accept: 'application/json' }, credentials: 'omit' })
+    } catch {
+      throw new Error('Pas de connexion : la recherche de lieu est impossible pour l’instant.')
+    }
+    if (res.status === 429) throw new Error('Le service de recherche limite les requêtes : réessaie dans un moment.')
     if (!res.ok) throw new Error(`Recherche impossible (le service a répondu ${res.status}).`)
-    const results = parseResults(await res.json())
+    let results: PlaceResult[]
+    try {
+      results = parseResults(await res.json())
+    } catch {
+      throw new Error('Réponse illisible du service de recherche.')
+    }
     writeCache({ ...cache, [key]: results })
     return results
   }

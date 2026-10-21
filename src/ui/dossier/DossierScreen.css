@@ -86,7 +86,8 @@
 }
 
 .btn--danger {
-  background: var(--color-danger);
+  background: var(--color-danger-strong);
+  color: #fff;
 }
 
 .categories,

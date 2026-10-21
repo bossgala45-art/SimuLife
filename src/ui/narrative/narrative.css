@@ -24,7 +24,7 @@
 .bubble--me {
   justify-self: end;
   border-radius: 16px 16px 4px 16px;
-  background: var(--color-accent);
+  background: var(--color-accent-strong);
   color: #fff;
 }
 
@@ -136,7 +136,7 @@
 
 .inbox__name .badge {
   margin-left: 6px;
-  background: var(--color-danger);
+  background: var(--color-danger-strong);
   color: #fff;
 }
 
@@ -241,6 +241,17 @@
   color: #222;
   font-size: 1.25rem;
   box-shadow: 0 1px 4px rgb(0 0 0 / 0.3);
+}
+
+.map__offline {
+  position: absolute;
+  inset: auto 8px 28px 8px;
+  margin: 0;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgb(255 255 255 / 0.9);
+  color: #222;
+  font-size: 0.8125rem;
 }
 
 .map__credit {

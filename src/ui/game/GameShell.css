@@ -149,7 +149,7 @@
   min-width: 18px;
   padding: 0 5px;
   border-radius: 999px;
-  background: var(--color-danger);
+  background: var(--color-danger-strong);
   color: #fff;
   font-size: 0.6875rem;
   font-weight: 700;
@@ -394,8 +394,8 @@
 }
 
 .filter--on {
-  border-color: var(--color-accent);
-  background: var(--color-accent);
+  border-color: var(--color-accent-strong);
+  background: var(--color-accent-strong);
   color: #fff;
 }
 

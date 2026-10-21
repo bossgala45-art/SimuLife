@@ -19,7 +19,10 @@ export function agenda(state: SimulationState, days = 45): AgendaItem[] {
     if (at > until) continue
     switch (event.type) {
       case 'payday':
-        if (state.career.job || state.career.benefit) items.push({ at, icon: '💶', label: state.career.job ? 'Salaire' : 'Allocation chômage', uncertain: false })
+        if (state.career.job || state.career.benefit || state.career.pension !== null) {
+          const label = state.career.job ? 'Salaire' : state.career.pension !== null ? 'Pension de retraite' : 'Allocation chômage'
+          items.push({ at, icon: '💶', label, uncertain: false })
+        }
         break
       case 'rent_due':
         items.push({ at, icon: '🏠', label: `Loyer (${event.amount} €)`, uncertain: false })

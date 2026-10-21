@@ -69,6 +69,8 @@ type Props = {
   ai?: NarrativeAiAdapter
   /** Configuration des services de carte (remplaçable dans les tests). */
   mapServices?: () => Promise<MapServices>
+  /** Effacement complet des données (Paramètres). */
+  onEraseAll?: () => Promise<void>
 }
 
 /** Au lancement : scène d'ouverture si la vie (ou la branche) vient de commencer. */
@@ -89,6 +91,7 @@ export default function GameShell({
   destiny,
   ai = disabledAdapter,
   mapServices = loadMapServices,
+  onEraseAll,
 }: Props) {
   const [route, setRoute] = useState<Route>({ tab: 'vie' })
   const [menuOpen, setMenuOpen] = useState(false)
@@ -234,7 +237,7 @@ export default function GameShell({
           ))}
         {page?.id === 'souvenirs' && <MemoriesPage state={state} />}
         {page?.id === 'journal' && <JournalPage state={state} />}
-        {page?.id === 'parametres' && <SettingsPage ai={ai} />}
+        {page?.id === 'parametres' && <SettingsPage ai={ai} onEraseAll={onEraseAll} />}
       </main>
 
       <nav className="tabbar" aria-label="Navigation principale">

@@ -81,10 +81,13 @@ export function routineWishes(state: SimulationState): RoutineChoice[] {
   const wishes: RoutineChoice[] = []
 
   if (n.sleep >= 70 || night) wishes.push({ id: 'sleep' })
-  if (n.hunger >= 45 || (morning && n.hunger >= 25)) {
+  const broke = available(state) < ACTIONS.cook_meal.cost.money
+  // Sans argent, la dernière distribution de l'aide alimentaire (avant 19 h) tient jusqu'au lendemain midi.
+  const lastAid = broke && hour >= 17 && hour < 19 && n.hunger >= 25
+  if (n.hunger >= 45 || (morning && n.hunger >= 25) || lastAid) {
     wishes.push({ id: 'cook_meal' })
     // Plus de quoi payer un repas : épargne, puis prêt d'un proche, puis aide alimentaire.
-    if (available(state) < ACTIONS.cook_meal.cost.money) {
+    if (broke) {
       if (state.finances.savings >= 100) wishes.push({ id: 'withdraw_savings', params: { amount: 100 } })
       const lender = bestLender(state)
       if (lender) wishes.push({ id: 'ask_loan', params: { personId: lender, amount: 200 } })

@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "typecheck": "tsc -b",
     "test": "vitest run",
+    "audit": "SIMULIFE_AUDIT=1 vitest run src/audit --silent=false --reporter=verbose",
     "test:watch": "vitest",
     "check": "npm run lint && npm run typecheck && npm run test && npm run build"
   },

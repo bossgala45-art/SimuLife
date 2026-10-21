@@ -2,12 +2,10 @@
 
 Application web (installable sur iPhone) simulant des vies alternatives réalistes.
 
-**État actuel (mission 7) :** narration sans IA (dialogues à choix contextuels, conversations
-en personne, messagerie avec les proches, actions libres tapées en français, mémoire des grands
-moments), repères historiques datés et sourcés, carte OpenStreetMap facultative avec autorisation
-explicite, adaptateur d'IA externe désactivé. En dessous : interface de jeu mobile (mission 6),
-arbre des destins (IndexedDB), moteur de simulation avec proches autonomes, études, métiers et
-finances, dossier de vie (109 questions sur un objectif de 500).
+**État actuel (mission 8 — finalisation) :** application complète et auditée. Liste des
+fonctionnalités terminées et partielles, limitations, résultats réels des tests : voir
+[AUDIT.md](AUDIT.md). Licences : [LICENCES-TIERS.md](LICENCES-TIERS.md).
+**Aucun essai n'a été fait sur un véritable iPhone** (émulation Chromium uniquement).
 
 ## Prérequis
 
@@ -31,10 +29,34 @@ npm run test:watch   # tests Vitest en mode surveillance
 npm run build        # build de production dans dist/
 npm run preview      # sert le build de production : http://localhost:4173
 npm run check        # lint + typecheck + test + build, dans cet ordre
+npm run audit        # simulations longues et audits (≈ 3 min) : 12 vies × 40 ans, 300 dossiers…
 ```
 
 `npm run dev` écoute aussi sur le réseau local (`--host`) : un iPhone connecté au
 **même Wi-Fi** que l'ordinateur peut ouvrir l'adresse « Network » affichée.
+
+## Déploiement sur un hébergement compatible
+
+L'application est un site statique (dossier `dist/`) : tout hébergeur HTTPS de fichiers statiques
+convient (GitHub Pages, Netlify, Cloudflare Pages, un serveur web classique…). HTTPS est
+indispensable pour l'installation sur iPhone, le service worker et le chiffrement.
+
+1. Construire : `npm ci && npm run check` (produit `dist/`).
+2. Si l'application n'est pas à la racine du domaine, indiquer son chemin :
+   `SIMULIFE_BASE=/mon-chemin/ npm run build`.
+3. Publier **tout** le contenu de `dist/` (dont `sw.js`, `services.json`, `manifest.webmanifest`,
+   `licences-tiers.txt`).
+4. Recommandé : servir `sw.js` et `index.html` sans cache long (les autres fichiers ont des noms
+   uniques et peuvent être mis en cache longtemps).
+
+**GitHub Pages** (dépôt `SimuLife`, adresse `https://<compte>.github.io/SimuLife/`) : le fichier
+`.github/workflows/deploy-pages.yml` publie l'application **uniquement quand on le lance à la main**.
+Dans le dépôt : Settings → Pages → Source : « GitHub Actions », puis Actions → « Publier sur GitHub
+Pages (manuel) » → Run workflow. Il exécute lint, typage, tests et construction avec le bon chemin
+(`/SimuLife/`) avant de publier. Rien n'est publié automatiquement.
+
+Pour couper la carte sans republier le code : mettre `"enabled": false` dans `services.json` sur
+l'hébergement.
 
 ## Installer sur iPhone
 
@@ -269,6 +291,9 @@ erreur dans la console.
 │   ├── dossier/              # dossier de vie (TS pur) : catalogue, questionnaire, chronologie
 │   ├── destiny/              # arbre des destins (TS pur) : branches, décisions, import/export
 │   ├── ai/                   # autorisations d'envoi, adaptateur d'IA facultatif (désactivé)
+│   ├── privacy/              # code de verrouillage, chiffrement des exports, effacement (+ tests)
+│   ├── pwa/                  # service worker (modèle) et son enregistrement
+│   ├── audit/                # simulations longues, dossiers aléatoires, stockage (npm run audit)
 │   ├── storage/              # IndexedDB (Dexie) pour les vies, localStorage pour le dossier
 │   ├── ui/
 │   │   ├── platform.ts       # détection du mode « écran d'accueil »
@@ -285,6 +310,8 @@ erreur dans la console.
 │   │   └── screens/          # Accueil, Nouvelle vie (+ tests)
 │   ├── styles/global.css     # styles globaux, zones sûres iPhone
 │   └── test/setup.ts         # configuration Vitest
+├── scripts/licences.mjs      # inventaire des licences (LICENCES-TIERS.md, public/licences-tiers.txt)
+├── .github/workflows/        # publication GitHub Pages, à lancer manuellement
 ├── eslint.config.js
 ├── vite.config.ts            # config Vite + Vitest
 └── tsconfig*.json
@@ -306,7 +333,16 @@ ESLint le vérifie automatiquement (`no-restricted-imports`).
 
 ## Données personnelles
 
+- **Code de verrouillage** (accueil → Confidentialité et données, ou Paramètres) : 4 à 8 chiffres,
+  seule une empreinte salée est stockée. Il protège l'accès à l'écran mais ne chiffre pas les
+  données enregistrées sur l'appareil.
+- **Exports chiffrés** (onglet Destins) : AES-256-GCM avec une clé dérivée de la phrase de passe
+  (PBKDF2-SHA-256, 310 000 itérations). La phrase de passe n'est enregistrée nulle part.
+- **Effacement complet** : supprime vies, branches, dossier, réglages, autorisations et code.
+- **Envois externes** : uniquement la carte OpenStreetMap, après autorisation explicite et
+  révocable ; l'IA externe est désactivée.
+
 Les vies et leurs branches (IndexedDB, base `simulife`) et le dossier de vie
 (`localStorage`, `simulife.dossier.v1`) sont enregistrés uniquement sur l'appareil, après
-chaque action ou réponse. Rien n'est envoyé à un serveur. L'export produit un fichier que
+chaque action ou réponse. Rien n'est envoyé à un serveur sans autorisation explicite. L'export produit un fichier que
 seul l'utilisateur partage s'il le souhaite.
