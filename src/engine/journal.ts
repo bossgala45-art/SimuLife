@@ -3,6 +3,7 @@
  * Seules les dernières entrées sont gardées pour ne pas saturer le stockage local ;
  * les faits durables (souvenirs, diplômes, dettes) sont conservés ailleurs dans l'état.
  */
+import { narrateEntry } from './story.ts'
 import type { LogEntry, LogKind, SimulationState } from './types.ts'
 
 export const LOG_LIMIT = 2500
@@ -19,4 +20,6 @@ export function writeLog(
   draft.log.push(entry)
   draft.nextLogSeq++
   if (draft.log.length > LOG_LIMIT) draft.log.splice(0, draft.log.length - LOG_LIMIT)
+  // Souvenirs durables et messages des proches (voir `story.ts`).
+  narrateEntry(draft, entry)
 }

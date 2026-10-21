@@ -1,5 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
-import { ageAt, formatDate, formatTime, type SimulationState, type StepResult } from '../../engine/index.ts'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { disabledAdapter, type NarrativeAiAdapter } from '../../ai/narrativeAi.ts'
+import { ageAt, formatDate, formatTime, unreadCount, type SimulationState, type StepResult } from '../../engine/index.ts'
+import { loadMapServices, type MapServices } from '../map/osm.ts'
+import Conversation from '../narrative/Conversation.tsx'
+import { MemoriesPage, MessagesPage } from '../narrative/pages.tsx'
 import { sound } from '../audio/sound.ts'
 import { eventCards } from './cards.ts'
 import DestinyTab, { type DestinyLink } from './DestinyTab.tsx'
@@ -21,11 +25,12 @@ import {
 import { loadSeen, saveSeen, type Seen } from './seen.ts'
 import SettingsPage from './SettingsPage.tsx'
 import '../life/life.css'
+import '../narrative/narrative.css'
 import './GameShell.css'
 
 type Tab = 'vie' | 'temps' | 'social' | 'monde' | 'destins'
-type Page = 'sante' | 'etudes' | 'carriere' | 'finances' | 'competences' | 'journal' | 'parametres'
-type Route = { tab: Tab } | { page: Page; from: Tab }
+type Page = 'sante' | 'etudes' | 'carriere' | 'finances' | 'competences' | 'messages' | 'souvenirs' | 'journal' | 'parametres'
+type Route = { tab: Tab } | { page: Page; from: Tab; personId?: string }
 
 const TABS: { id: Tab; label: string; icon: IconName }[] = [
   { id: 'vie', label: 'Vie', icon: 'vie' },
@@ -41,6 +46,8 @@ const PAGES: { id: Page; label: string; icon: string }[] = [
   { id: 'carriere', label: 'Carrière', icon: '💼' },
   { id: 'finances', label: 'Finances', icon: '💶' },
   { id: 'competences', label: 'Compétences', icon: '⭐' },
+  { id: 'messages', label: 'Messages', icon: '💬' },
+  { id: 'souvenirs', label: 'Souvenirs', icon: '📜' },
   { id: 'journal', label: 'Journal', icon: '📖' },
   { id: 'parametres', label: 'Paramètres', icon: '⚙️' },
 ]
@@ -58,6 +65,10 @@ type Props = {
   saveError?: string | null
   onRetrySave?: () => void
   destiny?: DestinyLink
+  /** IA externe facultative (désactivée par défaut). */
+  ai?: NarrativeAiAdapter
+  /** Configuration des services de carte (remplaçable dans les tests). */
+  mapServices?: () => Promise<MapServices>
 }
 
 /** Au lancement : scène d'ouverture si la vie (ou la branche) vient de commencer. */
@@ -67,7 +78,18 @@ function openingScenes(state: SimulationState, seen: Seen | null): Scene[] {
   return scenesFor(recent).slice(-1)
 }
 
-export default function GameShell({ state, onChange, onQuit, branchId, branchName, saveError, onRetrySave, destiny }: Props) {
+export default function GameShell({
+  state,
+  onChange,
+  onQuit,
+  branchId,
+  branchName,
+  saveError,
+  onRetrySave,
+  destiny,
+  ai = disabledAdapter,
+  mapServices = loadMapServices,
+}: Props) {
   const [route, setRoute] = useState<Route>({ tab: 'vie' })
   const [menuOpen, setMenuOpen] = useState(false)
   const [issues, setIssues] = useState<string[]>([])
@@ -97,6 +119,7 @@ export default function GameShell({ state, onChange, onQuit, branchId, branchNam
       sound.play(found.at(-1)!.sound)
     } else if (fresh.some((e) => e.kind === 'warning')) sound.play('warning')
     else if (fresh.some((e) => e.kind === 'money')) sound.play('money')
+    else if (fresh.some((e) => e.code === 'message_received')) sound.play('page')
     else sound.play('tap')
     onChange(result.state)
   }
@@ -125,6 +148,9 @@ export default function GameShell({ state, onChange, onQuit, branchId, branchNam
   const currentTab = 'tab' in route ? route.tab : route.from
   const page = 'page' in route ? PAGES.find((p) => p.id === route.page)! : null
   const toMonde = () => go({ tab: 'monde' })
+  const onState = useCallback((next: SimulationState) => onChange(next), [onChange])
+  const unread = unreadCount(state)
+  const openThread = (personId: string) => go({ page: 'messages', from: currentTab, personId })
 
   return (
     <div className="game">
@@ -148,7 +174,11 @@ export default function GameShell({ state, onChange, onQuit, branchId, branchNam
       <main className="game__content">
         {page && (
           <div className="page-head">
-            <button type="button" className="link" onClick={() => go({ tab: currentTab })}>
+            <button
+              type="button"
+              className="link"
+              onClick={() => go('personId' in route && route.personId ? { page: 'messages', from: currentTab } : { tab: currentTab })}
+            >
               ‹ Retour
             </button>
             <h1>{page.label}</h1>
@@ -187,8 +217,8 @@ export default function GameShell({ state, onChange, onQuit, branchId, branchNam
           />
         )}
         {'tab' in route && route.tab === 'temps' && <TempsTab state={state} onResult={apply} />}
-        {'tab' in route && route.tab === 'social' && <SocialTab state={state} onResult={apply} />}
-        {'tab' in route && route.tab === 'monde' && <MondeTab state={state} onResult={apply} />}
+        {'tab' in route && route.tab === 'social' && <SocialTab state={state} onResult={apply} onTalk={openThread} />}
+        {'tab' in route && route.tab === 'monde' && <MondeTab state={state} onResult={apply} onState={onState} loadServices={mapServices} />}
         {'tab' in route && route.tab === 'destins' && <DestinyTab destiny={destiny} branchId={branchId} />}
 
         {page?.id === 'sante' && <SantePage state={state} onResult={apply} />}
@@ -196,8 +226,15 @@ export default function GameShell({ state, onChange, onQuit, branchId, branchNam
         {page?.id === 'carriere' && <CarrierePage state={state} onResult={apply} onNavigate={toMonde} />}
         {page?.id === 'finances' && <FinancesPage state={state} onResult={apply} />}
         {page?.id === 'competences' && <CompetencesPage state={state} onResult={apply} />}
+        {page?.id === 'messages' &&
+          ('personId' in route && route.personId ? (
+            <Conversation state={state} personId={route.personId} onResult={apply} onState={onState} ai={ai} />
+          ) : (
+            <MessagesPage state={state} onOpen={openThread} />
+          ))}
+        {page?.id === 'souvenirs' && <MemoriesPage state={state} />}
         {page?.id === 'journal' && <JournalPage state={state} />}
-        {page?.id === 'parametres' && <SettingsPage />}
+        {page?.id === 'parametres' && <SettingsPage ai={ai} />}
       </main>
 
       <nav className="tabbar" aria-label="Navigation principale">
@@ -212,6 +249,11 @@ export default function GameShell({ state, onChange, onQuit, branchId, branchNam
             <Icon name={t.icon} />
             <span>{t.label}</span>
             {t.id === 'vie' && cards.length > 0 && <span className="tabbar__badge" aria-label={`${cards.length} nouvelles cartes`}>{cards.length}</span>}
+            {t.id === 'social' && unread > 0 && (
+              <span className="tabbar__badge" aria-label={`${unread} messages non lus`}>
+                {unread}
+              </span>
+            )}
           </button>
         ))}
       </nav>
@@ -227,6 +269,7 @@ export default function GameShell({ state, onChange, onQuit, branchId, branchNam
                   <button type="button" className="sheet__item" onClick={() => go({ page: p.id, from: currentTab })}>
                     <span aria-hidden="true">{p.icon}</span>
                     {p.label}
+                    {p.id === 'messages' && unread > 0 && <span className="badge">{unread}</span>}
                   </button>
                 </li>
               ))}

@@ -8,6 +8,7 @@
  */
 import { BASE, notSick, notTooTired, opensBetween, type ActionDefinition, type Outcome } from './actionKit.ts'
 import { CAREER_ACTIONS, workDay } from './careers.ts'
+import { DIALOGUE_ACTIONS, isTopicId } from './dialogue.ts'
 import { findCareer, findProgram } from './data/careers.ts'
 import { EDUCATION_ACTIONS, studySession } from './education.ts'
 import { triggerEvent } from './events.ts'
@@ -226,6 +227,7 @@ const ACTION_LIST: ActionDefinition[] = [
   ...CAREER_ACTIONS,
   ...EDUCATION_ACTIONS,
   ...FINANCE_ACTIONS,
+  ...DIALOGUE_ACTIONS,
 ]
 
 export const ACTIONS: Readonly<Record<ActionId, ActionDefinition>> = Object.fromEntries(
@@ -266,6 +268,10 @@ function paramIssue(state: SimulationState, def: ActionDefinition, params: Actio
         break
       case 'skill':
         if (!isSkillId(params.skill)) return { code: 'UNKNOWN_SKILL', message: `Compétence inconnue : « ${String(params.skill)} ».` }
+        break
+      case 'topic':
+        if (!params.topic) return { code: 'MISSING_PARAM', message: 'Choisis un sujet de conversation.' }
+        if (!isTopicId(params.topic)) return { code: 'UNKNOWN_TOPIC', message: `Sujet inconnu : « ${params.topic} ».` }
         break
       case 'amount':
         if (params.amount === undefined || !def.amounts?.includes(params.amount)) {

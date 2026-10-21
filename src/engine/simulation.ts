@@ -25,6 +25,7 @@ import { createEntourage, type Entourage } from './people.ts'
 import { eligibleCareers } from './requirements.ts'
 import { emptySkills, isSkillId, MAX_LEVEL, xpForLevel } from './skills.ts'
 import { writeLog } from './journal.ts'
+import { dailyCheckIns, emptyNarrative, emptyWorld } from './story.ts'
 import { applyTimeToNeeds, clamp, isCritical, NEED_IDS, NEEDS, type Activity } from './needs.ts'
 import { drawRandom, hashSeed } from './rng.ts'
 import { chooseRoutineAction } from './routine.ts'
@@ -101,7 +102,7 @@ export function createSimulation(options: NewLifeOptions): SimulationState {
   }
 
   const state: SimulationState = {
-    version: 2,
+    version: 3,
     seed,
     rngState: hashSeed(seed),
     clock,
@@ -127,6 +128,8 @@ export function createSimulation(options: NewLifeOptions): SimulationState {
     career: emptyCareer(),
     finances: initialFinances(),
     cooldowns: {},
+    narrative: emptyNarrative(),
+    world: emptyWorld(),
   }
 
   // Caractéristiques de départ tirées à partir de la graine.
@@ -286,5 +289,6 @@ function startNewDay(draft: SimulationState): void {
   checkAbsence(draft)
   accrueOverdraft(draft)
   npcDailyUpdate(draft)
+  dailyCheckIns(draft)
   dailyIncidents(draft)
 }

@@ -12,6 +12,8 @@ import ActionButton from './ActionButton.tsx'
 type Props = {
   state: SimulationState
   onResult: (result: StepResult) => void
+  /** Ouvre la conversation avec ce proche (messages, rencontre). */
+  onTalk?: (personId: string) => void
 }
 
 function Gauge({ label, value, inverse = false }: { label: string; value: number; inverse?: boolean }) {
@@ -33,7 +35,7 @@ function lastContact(days: number | null): string {
   return days === 1 ? 'hier' : `il y a ${days} jours`
 }
 
-function PersonCard({ state, person, onResult }: Props & { person: Person }) {
+function PersonCard({ state, person, onResult, onTalk }: Props & { person: Person }) {
   const rel = state.relationships[person.id]
   const params = { personId: person.id }
   const badges = [
@@ -85,6 +87,11 @@ function PersonCard({ state, person, onResult }: Props & { person: Person }) {
           </>
         )}
 
+        {person.alive && onTalk && (
+          <button type="button" className="btn btn--primary btn--small person__talk" onClick={() => onTalk(person.id)}>
+            Discuter ou écrire
+          </button>
+        )}
         {person.alive && (
           <ul className="actions">
             <li>
@@ -119,7 +126,7 @@ function PersonCard({ state, person, onResult }: Props & { person: Person }) {
   )
 }
 
-export default function PeoplePanel({ state, onResult }: Props) {
+export default function PeoplePanel({ state, onResult, onTalk }: Props) {
   const order = { parent: 0, sibling: 1, friend: 2, colleague: 3 }
   const people = [...state.people].sort((a, b) => Number(!a.alive) - Number(!b.alive) || order[a.role] - order[b.role])
   return (
@@ -128,7 +135,7 @@ export default function PeoplePanel({ state, onResult }: Props) {
       <p className="hint">Tes proches vivent leur vie : maladies, déménagements, changements de travail… Ils se souviennent de ce que tu fais pour eux.</p>
       <div className="people">
         {people.map((p) => (
-          <PersonCard key={p.id} state={state} person={p} onResult={onResult} />
+          <PersonCard key={p.id} state={state} person={p} onResult={onResult} onTalk={onTalk} />
         ))}
       </div>
     </section>

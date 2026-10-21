@@ -2,12 +2,12 @@
 
 Application web (installable sur iPhone) simulant des vies alternatives réalistes.
 
-**État actuel (mission 6) :** interface de jeu mobile (onglets Vie, Temps, Social, Monde,
-Destins ; menu Santé, Études, Carrière, Finances, Compétences, Journal, Paramètres), avatar 3D
-léger avec repli 2D, cartes d'événements, scènes des grands moments, thèmes clair et sombre,
-musique et effets synthétisés. En dessous : arbre des destins (IndexedDB), moteur de simulation
-avec proches autonomes, études, métiers et finances, dossier de vie (109 questions sur un
-objectif de 500).
+**État actuel (mission 7) :** narration sans IA (dialogues à choix contextuels, conversations
+en personne, messagerie avec les proches, actions libres tapées en français, mémoire des grands
+moments), repères historiques datés et sourcés, carte OpenStreetMap facultative avec autorisation
+explicite, adaptateur d'IA externe désactivé. En dessous : interface de jeu mobile (mission 6),
+arbre des destins (IndexedDB), moteur de simulation avec proches autonomes, études, métiers et
+finances, dossier de vie (109 questions sur un objectif de 500).
 
 ## Prérequis
 
@@ -159,6 +159,61 @@ Principes :
   d'argent, les diagnostics médicaux ou les coordonnées (vérifié par un test).
 - Le nombre de questions est vérifié par un test : il n'est annoncé que s'il est réel.
 
+## Narration et monde (mission 7)
+
+- **Dialogues sans IA** (`src/engine/dialogue.ts`) : onze sujets (prendre des nouvelles, raconter
+  une nouvelle, soutenir un proche malade, féliciter, souhaiter un anniversaire, remercier,
+  évoquer un souvenir, s'excuser, se confier, demander conseil, bavarder). Chaque sujet n'est
+  proposé que si le contexte réel le permet ; sinon sa raison est affichée. Les effets sur la
+  relation sont bornés ; une issue incertaine (excuses acceptées ou non) est annoncée avec sa
+  probabilité. Les réponses des proches ne citent que des faits de la simulation.
+- **Deux canaux**, deux actions du moteur : `talk` (en personne, 15 min, mêmes contraintes qu'une
+  rencontre : horaires, proche éloigné le week-end, collègue en semaine) et `write` (message,
+  5 min ; la réponse arrive 10 min à 2 h 30 plus tard, jamais la nuit).
+- **Messages des proches** (`src/engine/story.ts`) : ils annoncent eux-mêmes leurs nouvelles
+  (maladie, déménagement, travail, retraite), souhaitent l'anniversaire du personnage et écrivent
+  quand le contact se perd. Ces règles ne tirent pas le générateur aléatoire de la simulation
+  (variantes choisies par hachage) : le reste de la vie se déroule exactement comme avant.
+- **Actions libres** (`src/engine/intent.ts`) : une phrase (« appeler maman », « mettre 100 € de
+  côté », « postuler comme serveur ») est interprétée par des règles en actions proposées, avec
+  leur validation. Rien n'est exécuté sans confirmation ; un montant impossible est ajusté et
+  expliqué ; une phrase incomprise ne propose rien.
+- **Mémoire narrative** : diplômes, embauches, deuils, disputes, anniversaires « ronds »…
+  deviennent des souvenirs durables (page Souvenirs), réutilisés dans les dialogues.
+- **Sauvegarde v3** : messages, souvenirs et lieu ; les sauvegardes v2 (et v1) sont migrées,
+  les souvenirs étant reconstitués depuis le journal.
+- **Repères historiques** (`src/engine/data/history.ts`) : 11 événements datés, chacun avec sa
+  source (Wikipédia en français), une citation exacte et sa date de vérification (21/10/2026).
+  `validateHistory` refuse tout ajout non sourcé ou mal daté. Aucun événement n'est inventé
+  pour les années simulées au-delà d'août 2024.
+- **Carte** (`src/ui/map/osm.ts`) : aucune donnée géographique n'existe dans une vie par défaut
+  (le dossier ne demande pas de ville), donc rien n'est affiché. Le joueur peut choisir un lieu :
+  recherche Nominatim et tuiles OpenStreetMap, après autorisation. Règles d'usage de la
+  Fondation OSM appliquées : recherche seulement sur validation (pas d'autocomplétion), une
+  requête par seconde au plus, cache des résultats, seulement les tuiles affichées (ni
+  préchargement ni hors-ligne), attribution toujours visible, adresses des services dans
+  `public/services.json` (coupure possible sans mise à jour du code). Politiques :
+  https://operations.osmfoundation.org/policies/nominatim/ et
+  https://operations.osmfoundation.org/policies/tiles/ — ces services sont gratuits mais
+  limités et sans garantie ; un usage intensif demanderait un fournisseur dédié.
+- **Autorisations** (`src/ai/consent.ts`) : avant tout envoi, une fenêtre indique le
+  destinataire, les données exactes et la finalité ; accord pour une fois ou durable, révocable
+  dans Paramètres.
+- **IA externe facultative** (`src/ai/narrativeAi.ts`) : **désactivée**. Aucun service d'IA
+  gratuit, sécurisé et durable n'a été retenu : une clé d'API ne peut pas être placée dans
+  l'application sans être exposée, il faudrait un serveur intermédiaire (hébergement, coût,
+  maintenance), et les offres gratuites changent sans préavis. L'adaptateur est prêt : contexte
+  minimisé (ni prénom, ni date, ni montant), autorisation obligatoire, réponses filtrées
+  (texte nettoyé, actions sur liste blanche, cible forcée, validation par le moteur) et jamais
+  appliquées sans le choix du joueur. Le jeu fonctionne entièrement sans IA.
+
+Vérifié dans Chromium (émulation iPhone 15) : action libre, conversation écrite et en personne,
+réponse différée et badge « non lu », souvenirs, repères historiques, autorisation puis carte,
+aucune requête vers OpenStreetMap avant l'accord, aucune erreur console, pas de débordement.
+Non vérifié : les vrais serveurs Nominatim et de tuiles n'ont pas été contactés (réponses
+simulées dans le test, pour ne pas leur envoyer de requêtes automatisées) ; clavier et saisie
+de texte dans Safari iOS ; comportement réel sur iPhone.
+
 ## Interface de jeu (`src/ui/game/`, `src/ui/avatar/`, `src/ui/audio/`)
 
 - **Coque** (`GameShell.tsx`) : en-tête (nom, âge, date, heure, compte), barre inférieure
@@ -213,6 +268,7 @@ erreur dans la console.
 │   ├── engine/               # moteur de simulation (TS pur) + tests *.test.ts
 │   ├── dossier/              # dossier de vie (TS pur) : catalogue, questionnaire, chronologie
 │   ├── destiny/              # arbre des destins (TS pur) : branches, décisions, import/export
+│   ├── ai/                   # autorisations d'envoi, adaptateur d'IA facultatif (désactivé)
 │   ├── storage/              # IndexedDB (Dexie) pour les vies, localStorage pour le dossier
 │   ├── ui/
 │   │   ├── platform.ts       # détection du mode « écran d'accueil »
@@ -221,6 +277,8 @@ erreur dans la console.
 │   │   ├── game/             # coque du jeu, onglets, pages, cartes, scènes, agenda (+ tests)
 │   │   ├── avatar/           # avatar 3D (React Three Fiber) et repli 2D (+ tests)
 │   │   ├── audio/            # musique et effets synthétisés (+ tests)
+│   │   ├── narrative/        # conversations, messagerie, souvenirs, histoire, carte (+ tests)
+│   │   ├── map/              # OpenStreetMap : configuration, recherche, tuiles (+ tests)
 │   │   ├── life/             # sections réutilisées : proches, emploi, études, argent
 │   │   ├── destiny/          # écran de l'arbre, création de branche
 │   │   ├── settings.ts       # réglages de l'interface (+ tests)

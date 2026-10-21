@@ -15,6 +15,7 @@ import { INCIDENT_HANDLERS } from './incidents.ts'
 import { writeLog } from './journal.ts'
 import { clamp } from './needs.ts'
 import { scheduleEvent } from './schedule.ts'
+import { STORY_HANDLERS } from './story.ts'
 import { ageAt, MINUTES_PER_DAY, nextAnniversary, nextMonthlyOccurrence } from './time.ts'
 import type { GameEvent, GameEventType, SimulationState } from './types.ts'
 
@@ -78,6 +79,7 @@ const HANDLERS: { [T in GameEventType]: Handler<T> } = {
   ...EDUCATION_HANDLERS,
   ...AUTONOMY_HANDLERS,
   ...INCIDENT_HANDLERS,
+  ...STORY_HANDLERS,
 }
 
 export const EVENT_TYPES = Object.keys(HANDLERS) as GameEventType[]

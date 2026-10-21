@@ -59,7 +59,7 @@ export const SOCIAL_ACTIONS: ActionDefinition[] = [
       touch(draft, p.personId!)
       adjustRelationship(draft, p.personId!, { closeness: 2 + talkBonus(draft), tension: -2 })
       gainXp(draft, 'communication', 3)
-      writeLog(draft, 'social', 'called', `Appel avec ${person(draft, p).name}.`)
+      writeLog(draft, 'social', 'called', `Appel avec ${person(draft, p).name}.`, { personId: p.personId! })
     },
   },
   {
@@ -94,11 +94,11 @@ export const SOCIAL_ACTIONS: ActionDefinition[] = [
         adjustRelationship(draft, p.personId!, { closeness: -5, tension: 10, trust: -3 })
         addMemory(draft, p.personId!, 'argument', -5, 'Dispute pendant une visite.')
         draft.character.needs.stress = clamp(draft.character.needs.stress + 15)
-        writeLog(draft, 'social', 'argument', `La visite chez ${name} tourne à la dispute.`)
+        writeLog(draft, 'social', 'argument', `La visite chez ${name} tourne à la dispute.`, { personId: p.personId! })
         return
       }
       adjustRelationship(draft, p.personId!, { closeness: 6 + talkBonus(draft), tension: -4 })
-      writeLog(draft, 'social', 'visited', `Moment passé avec ${name}.`)
+      writeLog(draft, 'social', 'visited', `Moment passé avec ${name}.`, { personId: p.personId! })
     },
   },
   {
@@ -114,7 +114,7 @@ export const SOCIAL_ACTIONS: ActionDefinition[] = [
       touch(draft, p.personId!)
       adjustRelationship(draft, p.personId!, { closeness: 4, tension: -6 })
       addMemory(draft, p.personId!, 'gift', 3, 'Cadeau reçu de ta part.')
-      writeLog(draft, 'social', 'gift', `Cadeau offert à ${person(draft, p).name}.`)
+      writeLog(draft, 'social', 'gift', `Cadeau offert à ${person(draft, p).name}.`, { personId: p.personId! })
     },
   },
   {
@@ -142,7 +142,7 @@ export const SOCIAL_ACTIONS: ActionDefinition[] = [
       target.health = clamp(target.health + 5)
       adjustRelationship(draft, target.id, { closeness: 8, trust: 6 })
       addMemory(draft, target.id, 'help', 6, 'Tu es venu·e aider pendant sa maladie.')
-      writeLog(draft, 'social', 'helped', `Tu aides ${target.name} pendant sa maladie.`)
+      writeLog(draft, 'social', 'helped', `Tu aides ${target.name} pendant sa maladie.`, { personId: target.id })
     },
   },
   {
@@ -180,11 +180,15 @@ export const SOCIAL_ACTIONS: ActionDefinition[] = [
           annualRate: 0,
         })
         addMemory(draft, target.id, 'loan_granted', 2, `T’a prêté ${p.amount} €.`)
-        writeLog(draft, 'social', 'loan_granted', `${target.name} accepte de te prêter ${p.amount} € (accord estimé ${percent(probability)}).`)
+        writeLog(draft, 'social', 'loan_granted', `${target.name} accepte de te prêter ${p.amount} € (accord estimé ${percent(probability)}).`, {
+          personId: target.id,
+        })
       } else {
         adjustRelationship(draft, target.id, { closeness: -1 })
         addMemory(draft, target.id, 'loan_refused', -2, `A refusé de te prêter ${p.amount} €.`)
-        writeLog(draft, 'social', 'loan_refused', `${target.name} refuse de te prêter ${p.amount} € (accord estimé ${percent(probability)}).`)
+        writeLog(draft, 'social', 'loan_refused', `${target.name} refuse de te prêter ${p.amount} € (accord estimé ${percent(probability)}).`, {
+          personId: target.id,
+        })
       }
     },
   },
