@@ -15,6 +15,10 @@
   --color-warning-soft: rgb(255 176 32 / 0.14);
   --color-accent-2-soft: rgb(34 200 181 / 0.15);
   --color-glow: rgb(124 92 255 / 0.35);
+  /* Fonds sous texte blanc : contraste ≥ 4,5:1 (WCAG AA). */
+  --color-accent-strong: #6847e8;
+  --color-accent-2-strong: #0b7a6e;
+  --color-danger-strong: #d6264a;
   --color-scrim: rgb(5 6 14 / 0.6);
   --shadow: 0 10px 30px rgb(0 0 0 / 0.35);
   --radius: 16px;
@@ -39,13 +43,13 @@
   --color-muted: #5b607f;
   --color-border: #d7dbec;
   --color-accent: #6a4cf0;
-  --color-accent-2: #0d8f81;
+  --color-accent-2: #0a6f64;
   --color-accent-text: #5a3fd6;
   --color-danger: #c92a49;
-  --color-warning: #9a6200;
+  --color-warning: #805000;
   --color-danger-soft: rgb(201 42 73 / 0.1);
-  --color-warning-soft: rgb(154 98 0 / 0.1);
-  --color-accent-2-soft: rgb(13 143 129 / 0.12);
+  --color-warning-soft: rgb(128 80 0 / 0.1);
+  --color-accent-2-soft: rgb(10 111 100 / 0.1);
   --color-glow: rgb(106 76 240 / 0.25);
   --color-scrim: rgb(20 22 40 / 0.35);
   --shadow: 0 8px 24px rgb(23 26 46 / 0.12);
@@ -61,13 +65,13 @@
     --color-muted: #5b607f;
     --color-border: #d7dbec;
     --color-accent: #6a4cf0;
-    --color-accent-2: #0d8f81;
+    --color-accent-2: #0a6f64;
     --color-accent-text: #5a3fd6;
     --color-danger: #c92a49;
-    --color-warning: #9a6200;
+    --color-warning: #805000;
     --color-danger-soft: rgb(201 42 73 / 0.1);
-    --color-warning-soft: rgb(154 98 0 / 0.1);
-    --color-accent-2-soft: rgb(13 143 129 / 0.12);
+    --color-warning-soft: rgb(128 80 0 / 0.1);
+    --color-accent-2-soft: rgb(10 111 100 / 0.1);
     --color-glow: rgb(106 76 240 / 0.25);
     --color-scrim: rgb(20 22 40 / 0.35);
     --shadow: 0 8px 24px rgb(23 26 46 / 0.12);
@@ -151,8 +155,8 @@ button {
 }
 
 .btn--primary {
-  background: linear-gradient(135deg, var(--color-accent), var(--color-accent-2));
-  color: #fff; /* lisible dans les deux thèmes */
+  background: linear-gradient(135deg, var(--color-accent-strong), var(--color-accent-2-strong));
+  color: #fff; /* contraste ≥ 4,5:1 sur tout le dégradé, dans les deux thèmes */
 }
 
 .btn--secondary {

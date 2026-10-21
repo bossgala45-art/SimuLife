@@ -3,6 +3,8 @@ import { ancestry, buildTree, childrenOf, flatten } from '../../destiny/tree.ts'
 import type { BranchRecord, TreeRecord } from '../../destiny/types.ts'
 import { formatDate } from '../../engine/index.ts'
 import type { BranchSession, DestinyRepository, SnapshotInfo } from '../../storage/destiny.ts'
+import { decryptText, encryptText, isEncrypted, MIN_PASSPHRASE } from '../../privacy/crypto.ts'
+import '../privacy/privacy.css'
 import { downloadText, errorText } from './download.ts'
 import ForkView from './ForkView.tsx'
 import './TreeScreen.css'
@@ -29,6 +31,10 @@ export default function TreeScreen({ repo, activeBranchId, onOpen, onBack }: Pro
   const [confirm, setConfirm] = useState<'branch' | 'tree' | null>(null)
   const [nameDraft, setNameDraft] = useState<string | null>(null)
   const fileInput = useRef<HTMLInputElement>(null)
+  /** Export en cours de préparation : chiffré ou non. */
+  const [exporting, setExporting] = useState<{ encrypt: boolean; pass: string; confirm: string } | null>(null)
+  /** Fichier chiffré en attente de sa phrase de passe. */
+  const [sealed, setSealed] = useState<{ text: string; pass: string } | null>(null)
 
   const tree = trees?.find((t) => t.id === treeId) ?? null
   const selected = branches.find((b) => b.id === selectedId) ?? null
@@ -294,20 +300,82 @@ export default function TreeScreen({ repo, activeBranchId, onOpen, onBack }: Pro
       <section className="card" aria-label="Sauvegardes">
         <h2>Sauvegardes</h2>
         <div className="tree-actions">
-          {tree && (
-            <button
-              type="button"
-              className="btn btn--secondary"
-              onClick={() =>
-                void run(async () => {
-                  const json = await repo.exportTree(tree.id)
-                  downloadText(`simulife-${tree.name.replace(/\W+/g, '-').toLowerCase()}.json`, json)
-                  setMessage({ kind: 'info', text: 'Fichier d’export prêt (format versionné, avec empreintes de contrôle).' })
-                })
-              }
-            >
-              Exporter cette vie
+          {tree && !exporting && (
+            <button type="button" className="btn btn--secondary" onClick={() => setExporting({ encrypt: true, pass: '', confirm: '' })}>
+              Exporter cette vie…
             </button>
+          )}
+          {tree && exporting && (
+            <form
+              className="export-form"
+              aria-label="Export"
+              onSubmit={(e) => {
+                e.preventDefault()
+                void run(async () => {
+                  if (exporting.encrypt && exporting.pass !== exporting.confirm) throw new Error('Les deux phrases de passe ne correspondent pas.')
+                  const json = await repo.exportTree(tree.id)
+                  const base = `simulife-${tree.name.replace(/\W+/g, '-').toLowerCase()}`
+                  if (exporting.encrypt) downloadText(`${base}.chiffre.json`, await encryptText(json, exporting.pass))
+                  else downloadText(`${base}.json`, json)
+                  setExporting(null)
+                  setMessage({
+                    kind: 'info',
+                    text: exporting.encrypt
+                      ? 'Export chiffré prêt (AES-256-GCM). Sans la phrase de passe, il est illisible : elle n’est enregistrée nulle part.'
+                      : 'Fichier d’export prêt, NON chiffré : toute personne qui l’obtient peut le lire.',
+                  })
+                })
+              }}
+            >
+              <label className="toggle">
+                <input type="checkbox" checked={exporting.encrypt} onChange={(e) => setExporting({ ...exporting, encrypt: e.target.checked })} />
+                Chiffrer avec une phrase de passe (recommandé)
+              </label>
+              {exporting.encrypt && (
+                <>
+                  <label>
+                    Phrase de passe ({MIN_PASSPHRASE} caractères au moins)
+                    <input type="password" autoComplete="new-password" value={exporting.pass} onChange={(e) => setExporting({ ...exporting, pass: e.target.value })} />
+                  </label>
+                  <label>
+                    Confirmer la phrase de passe
+                    <input type="password" autoComplete="new-password" value={exporting.confirm} onChange={(e) => setExporting({ ...exporting, confirm: e.target.value })} />
+                  </label>
+                </>
+              )}
+              <button type="submit" className="btn btn--secondary" disabled={exporting.encrypt && exporting.pass.length < MIN_PASSPHRASE}>
+                {exporting.encrypt ? 'Exporter chiffré' : 'Exporter sans chiffrement'}
+              </button>
+              <button type="button" className="link" onClick={() => setExporting(null)}>
+                Annuler
+              </button>
+            </form>
+          )}
+          {sealed && (
+            <form
+              className="export-form"
+              aria-label="Fichier chiffré"
+              onSubmit={(e) => {
+                e.preventDefault()
+                void run(async () => {
+                  const imported = await repo.importTree(await decryptText(sealed.text, sealed.pass))
+                  setSealed(null)
+                  await load(imported.id)
+                  setMessage({ kind: 'info', text: `Vie importée (fichier chiffré) : ${imported.name}.` })
+                })
+              }}
+            >
+              <label>
+                Phrase de passe du fichier chiffré
+                <input type="password" autoComplete="current-password" value={sealed.pass} onChange={(e) => setSealed({ ...sealed, pass: e.target.value })} />
+              </label>
+              <button type="submit" className="btn btn--secondary" disabled={!sealed.pass}>
+                Déchiffrer et importer
+              </button>
+              <button type="button" className="link" onClick={() => setSealed(null)}>
+                Annuler
+              </button>
+            </form>
           )}
           <button type="button" className="btn btn--secondary" onClick={() => fileInput.current?.click()}>
             Importer une vie
@@ -323,7 +391,13 @@ export default function TreeScreen({ repo, activeBranchId, onOpen, onBack }: Pro
               e.target.value = ''
               if (!file) return
               void run(async () => {
-                const imported = await repo.importTree(await file.text())
+                const text = await file.text()
+                if (isEncrypted(text)) {
+                  setSealed({ text, pass: '' })
+                  setMessage({ kind: 'info', text: 'Fichier chiffré : saisis sa phrase de passe.' })
+                  return
+                }
+                const imported = await repo.importTree(text)
                 await load(imported.id)
                 setMessage({ kind: 'info', text: `Vie importée : ${imported.name}.` })
               })

@@ -26,6 +26,7 @@ export default function MapCard({ state, onState, loadServices }: Props) {
   const [showTiles, setShowTiles] = useState(() => hasConsent('openstreetmap'))
   const [zoom, setZoom] = useState(12)
   const [width, setWidth] = useState(320)
+  const [tileErrors, setTileErrors] = useState(0)
   const box = useRef<HTMLDivElement>(null)
   const geocoder = useMemo(() => (services ? new Geocoder(services) : null), [services])
   const home = state.world.home
@@ -114,9 +115,23 @@ export default function MapCard({ state, onState, loadServices }: Props) {
             <>
               <div className="map" ref={box} style={{ height: HEIGHT }}>
                 {visibleTiles(services, home.lat, home.lon, zoom, width, HEIGHT).map((t) => (
-                  <img key={t.key} src={t.url} alt="" width={256} height={256} style={{ left: t.left, top: t.top }} draggable={false} />
+                  <img
+                    key={t.key}
+                    src={t.url}
+                    alt=""
+                    width={256}
+                    height={256}
+                    style={{ left: t.left, top: t.top }}
+                    draggable={false}
+                    onError={() => setTileErrors((n) => n + 1)}
+                  />
                 ))}
                 <span className="map__pin" aria-hidden="true" />
+                {tileErrors > 0 && (
+                  <p className="map__offline" role="status">
+                    Images de carte indisponibles (pas de connexion ?). La carte n’est pas conservée hors ligne.
+                  </p>
+                )}
                 <div className="map__zoom">
                   <button type="button" aria-label="Zoomer" disabled={zoom >= MAX_ZOOM} onClick={() => setZoom((z) => z + 1)}>
                     +

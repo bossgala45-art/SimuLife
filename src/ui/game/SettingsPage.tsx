@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { CONSENT_PURPOSES, loadConsents, revokeConsent, type ConsentId } from '../../ai/consent.ts'
 import type { NarrativeAiAdapter } from '../../ai/narrativeAi.ts'
+import PrivacyPanel from '../privacy/PrivacyPanel.tsx'
 import { sound } from '../audio/sound.ts'
 import { avatar3dFailed, avatarMode } from '../avatar/webgl.ts'
 import type { Settings } from '../settings.ts'
@@ -54,7 +55,7 @@ function Volume({ label, value, disabled, onChange }: { label: string; value: nu
 }
 
 /** Réglages réels : thème, animations, avatar, musique, effets, stockage. */
-export default function SettingsPage({ ai }: { ai: NarrativeAiAdapter }) {
+export default function SettingsPage({ ai, onEraseAll }: { ai: NarrativeAiAdapter; onEraseAll?: () => Promise<void> }) {
   const { settings, update, persisted } = useSettings()
   const [storage, setStorage] = useState<Storage>(null)
   const [consents, setConsents] = useState(() => loadConsents())
@@ -150,6 +151,8 @@ export default function SettingsPage({ ai }: { ai: NarrativeAiAdapter }) {
           </ul>
         )}
       </section>
+
+      {onEraseAll && <PrivacyPanel onEraseAll={onEraseAll} />}
 
       <section className="card" aria-labelledby="storage-title">
         <h2 id="storage-title">Stockage sur l’appareil</h2>

@@ -12,9 +12,10 @@ type HomeScreenProps = {
   onContinue: () => void
   onDossier: () => void
   onTree: () => void
+  onPrivacy?: () => void
 }
 
-export default function HomeScreen({ installed, savedLife, loadError, onNewLife, onContinue, onDossier, onTree }: HomeScreenProps) {
+export default function HomeScreen({ installed, savedLife, loadError, onNewLife, onContinue, onDossier, onTree, onPrivacy }: HomeScreenProps) {
   const [aboutOpen, setAboutOpen] = useState(false)
   const aboutId = useId()
 
@@ -50,6 +51,11 @@ export default function HomeScreen({ installed, savedLife, loadError, onNewLife,
           Arbre des destins
         </button>
 
+        {onPrivacy && (
+          <button type="button" className="btn btn--secondary" onClick={onPrivacy}>
+            Confidentialité et données
+          </button>
+        )}
         <button
           type="button"
           className="btn btn--secondary"
@@ -68,6 +74,11 @@ export default function HomeScreen({ installed, savedLife, loadError, onNewLife,
             simulation reprend ensuite à l’âge que tu choisis.
           </p>
           <p>Tes vies, leurs branches et ton dossier sont enregistrés uniquement sur cet appareil.</p>
+          <p>
+            <a href={`${import.meta.env.BASE_URL}licences-tiers.txt`} target="_blank" rel="noreferrer">
+              Licences des bibliothèques utilisées
+            </a>
+          </p>
         </section>
       )}
 

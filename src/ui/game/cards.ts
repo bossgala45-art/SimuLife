@@ -58,6 +58,7 @@ const CARD_TYPES: Record<string, { tone: CardTone; icon: string; title: string }
   loan_refused: { tone: 'bad', icon: '🙅', title: 'Prêt refusé' },
   argument: { tone: 'bad', icon: '💢', title: 'Dispute' },
   divergence: { tone: 'info', icon: '🌱', title: 'Nouvelle branche' },
+  retired: { tone: 'good', icon: '🌴', title: 'Retraite' },
   message_received: { tone: 'info', icon: '💬', title: 'Nouveau message' },
 }
 

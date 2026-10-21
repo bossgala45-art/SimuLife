@@ -208,6 +208,8 @@ export interface Career {
   experience: Record<string, number>
   /** Allocation chômage mensuelle et nombre de versements restants (règle simplifiée). */
   benefit: { amount: number; remaining: number } | null
+  /** Pension de retraite mensuelle (euros, approximative), une fois à la retraite. */
+  pension: number | null
 }
 
 // ——— Finances ———
@@ -380,3 +382,4 @@ export type ValidationCode =
   | 'TOPIC_UNAVAILABLE'
   | 'INVALID_TEXT'
   | 'INVALID_PLACE'
+  | 'RETIRED'

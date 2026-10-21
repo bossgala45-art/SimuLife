@@ -5,8 +5,9 @@
  * sur une copie et renvoient le nouvel état. Même état + même action = même résultat.
  */
 import { actionCost, ACTIONS, validateAction, type ActionDefinition } from './actions.ts'
+import { dailyAging } from './aging.ts'
 import { npcDailyUpdate } from './autonomy.ts'
-import { checkAbsence, emptyCareer, PAYDAY, PAYDAY_HOUR, startJob } from './careers.ts'
+import { checkAbsence, emptyCareer, PAYDAY, PAYDAY_HOUR, retire, startJob } from './careers.ts'
 import { findCareer, findDiploma } from './data/careers.ts'
 import { emptyEducation } from './education.ts'
 import { invariant, SimulationError } from './errors.ts'
@@ -21,7 +22,7 @@ import {
 } from './events.ts'
 import { accrueOverdraft, addMoney, BILLS_DAY, BILLS_HOUR, initialFinances } from './finances.ts'
 import { dailyIncidents } from './incidents.ts'
-import { createEntourage, type Entourage } from './people.ts'
+import { createEntourage, RETIREMENT_AGE, type Entourage } from './people.ts'
 import { eligibleCareers } from './requirements.ts'
 import { emptySkills, isSkillId, MAX_LEVEL, xpForLevel } from './skills.ts'
 import { writeLog } from './journal.ts'
@@ -168,6 +169,7 @@ export function createSimulation(options: NewLifeOptions): SimulationState {
     startJob(state, career)
   }
 
+  if (ageAt(options.birthDate, clock) >= RETIREMENT_AGE) retire(state)
   scheduleEvent(state, nextMonthlyOccurrence(clock, RENT_DAY, RENT_HOUR), { type: 'rent_due', amount: RENT_AMOUNT })
   scheduleEvent(state, nextAnniversary(clock, options.birthDate, BIRTHDAY_HOUR), { type: 'birthday' })
   scheduleEvent(state, nextMonthlyOccurrence(clock, PAYDAY, PAYDAY_HOUR), { type: 'payday' })
@@ -279,6 +281,7 @@ function simulateSpan(draft: SimulationState, minutes: number, activity: Activit
     }
 
     if (minuteOfDay(draft.clock) === 0) startNewDay(draft)
+    if (!draft.character.alive) return
     processDueEvents(draft)
   }
 }
@@ -291,4 +294,5 @@ function startNewDay(draft: SimulationState): void {
   npcDailyUpdate(draft)
   dailyCheckIns(draft)
   dailyIncidents(draft)
+  dailyAging(draft)
 }

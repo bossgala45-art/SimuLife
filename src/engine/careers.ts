@@ -27,7 +27,7 @@ export const RAISE_RATE = 0.03
 export const RESPONSE_DAYS: [number, number] = [3, 10]
 
 export function emptyCareer(): Career {
-  return { job: null, experience: {}, benefit: null }
+  return { job: null, experience: {}, benefit: null, pension: null }
 }
 
 export const occupationLabel = (id: string) =>
@@ -130,6 +130,19 @@ export function layOff(draft: SimulationState): void {
   )
 }
 
+/**
+ * Départ à la retraite du personnage : fin de l'emploi et pension mensuelle
+ * (règle simplifiée, montant approximatif).
+ */
+export function retire(draft: SimulationState): void {
+  if (draft.career.pension !== null) return
+  const job = draft.career.job
+  draft.career.pension = Math.max(ECONOMY.minimumPension.value, Math.round(((job?.salary ?? 0) * ECONOMY.pensionReplacement.value) / 10) * 10)
+  draft.career.job = null
+  draft.career.benefit = null
+  writeLog(draft, 'event', 'retired', `Départ à la retraite : pension d’environ ${draft.career.pension} € par mois (montant approximatif).`)
+}
+
 export const CAREER_HANDLERS = {
   payday(draft: SimulationState, event: Extract<GameEvent, { type: 'payday' }>) {
     // Le relevé du mois écoulé est clôturé d'abord : le salaire compte dans le nouveau mois.
@@ -156,6 +169,10 @@ export const CAREER_HANDLERS = {
       benefit.remaining--
       writeLog(draft, 'money', 'benefit', `Allocation chômage : +${benefit.amount} € (montant approximatif).`)
       if (benefit.remaining === 0) draft.career.benefit = null
+    }
+    if (draft.career.pension !== null) {
+      addMoney(draft, draft.career.pension, 'Pension de retraite')
+      writeLog(draft, 'money', 'pension', `Pension de retraite : +${draft.career.pension} € (montant approximatif).`)
     }
     scheduleEvent(draft, nextMonthlyOccurrence(draft.clock, PAYDAY, PAYDAY_HOUR), event)
   },
@@ -199,6 +216,7 @@ export const CAREER_ACTIONS: ActionDefinition[] = [
     durationMinutes: 60,
     params: ['career'],
     preconditions: [
+      { code: 'RETIRED', test: (s) => s.career.pension === null, message: 'Tu es à la retraite.' },
       { code: 'CLOSED', test: (s) => weekdayOf(s) < 5, message: 'Les recruteurs répondent en semaine.' },
       opensBetween(8, 18, 'Candidatures entre 8 h et 18 h.'),
       {

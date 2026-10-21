@@ -31,6 +31,8 @@ export const ECONOMY = {
   unemploymentReplacement: approx('Part du salaire versée en allocation chômage', 0.57),
   unemploymentMonths: approx('Durée de l’allocation chômage (mois, règle simplifiée)', 6),
   workDaysPerMonth: approx('Jours travaillés par mois', 21),
+  pensionReplacement: approx('Part du dernier salaire versée en pension de retraite (règle simplifiée)', 0.5),
+  minimumPension: approx('Pension minimale sans salaire à la retraite (règle simplifiée)', 900),
 } satisfies Record<string, EconomicValue>
 
 /** Charges fixes prélevées chaque mois (hors loyer). */

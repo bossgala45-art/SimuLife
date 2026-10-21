@@ -1,0 +1,64 @@
+.lock {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 16px;
+  min-height: 100dvh;
+  padding: calc(env(safe-area-inset-top) + 24px) 24px calc(env(safe-area-inset-bottom) + 24px);
+  text-align: center;
+}
+
+.lock h1 {
+  margin: 0;
+  letter-spacing: 0.08em;
+}
+
+.lock__form,
+.lock__forgot,
+.pin-form {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+  max-width: 320px;
+}
+
+.pin-form {
+  max-width: none;
+}
+
+.lock__form input,
+.pin-form input,
+.export-form input {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 1.125rem;
+  letter-spacing: 0.2em;
+  text-align: center;
+}
+
+.pin-form label {
+  display: grid;
+  gap: 4px;
+  font-weight: 600;
+}
+
+.export-form {
+  display: grid;
+  gap: 8px;
+}
+
+.export-form input {
+  letter-spacing: normal;
+  text-align: left;
+}
+
+.export-form label {
+  display: grid;
+  gap: 4px;
+}

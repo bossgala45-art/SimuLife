@@ -99,6 +99,8 @@ describe('adaptateur d’IA facultatif', () => {
     const adapter = createProxyAdapter('https://exemple.org/ia', fetchFn as unknown as typeof fetch)
     const state = life()
     expect(await adapter.complete(buildAiRequest(state, parent(state).id))).toEqual({ reply: 'ok' })
+    const offline = createProxyAdapter('https://exemple.org/ia', (() => Promise.reject(new TypeError('Failed to fetch'))) as unknown as typeof fetch)
+    await expect(offline.complete(buildAiRequest(state, parent(state).id))).rejects.toThrow('Pas de connexion au service d’IA.')
     const [, init] = fetchFn.mock.calls[0] as unknown as [URL, RequestInit]
     expect(init.credentials).toBe('omit')
     expect(JSON.stringify(init.headers)).not.toMatch(/authorization|key/i)

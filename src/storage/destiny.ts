@@ -105,6 +105,11 @@ export class DestinyRepository {
     this.db.close()
   }
 
+  /** Nom de la base IndexedDB (pour l'effacement complet). */
+  get name(): string {
+    return this.db.name
+  }
+
   // ——— Lecture ———
 
   listTrees(): Promise<TreeRecord[]> {

@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { eraseAllData } from '../privacy/erase.ts'
+import { hasPin, RELOCK_AFTER_MS } from '../privacy/lock.ts'
 import { DestinyError } from '../destiny/errors.ts'
 import { lifeTitle } from '../destiny/summary.ts'
 import type { DeclaredEvent } from '../destiny/types.ts'
@@ -12,15 +14,25 @@ import GameShell from '../ui/game/GameShell.tsx'
 import HomeScreen from '../ui/screens/HomeScreen.tsx'
 import NewLifeScreen from '../ui/screens/NewLifeScreen.tsx'
 import { isStandalone } from '../ui/platform.ts'
+import LockScreen from '../ui/privacy/LockScreen.tsx'
+import PrivacyPanel from '../ui/privacy/PrivacyPanel.tsx'
 
-type Screen = 'loading' | 'home' | 'new' | 'life' | 'dossier' | 'tree'
+type Screen = 'loading' | 'home' | 'new' | 'life' | 'dossier' | 'tree' | 'privacy'
+
+const pinConfigured = () => {
+  try {
+    return hasPin()
+  } catch {
+    return false
+  }
+}
 
 function today() {
   const now = new Date()
   return { year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate() }
 }
 
-export default function App({ repository }: { repository?: DestinyRepository }) {
+export default function App({ repository, reload = () => window.location.reload() }: { repository?: DestinyRepository; reload?: () => void }) {
   const [repo] = useState(() => repository ?? new DestinyRepository())
   const [screen, setScreen] = useState<Screen>('loading')
   const [session, setSession] = useState<BranchSession | null>(null)
@@ -32,6 +44,8 @@ export default function App({ repository }: { repository?: DestinyRepository }) 
   const persisted = useRef<BranchSession | null>(null)
   /** Les sauvegardes passent l'une après l'autre, dans l'ordre des actions. */
   const queue = useRef<Promise<void>>(Promise.resolve())
+  /** Verrouillage par code : rien n'est affiché tant qu'il n'est pas levé. */
+  const [locked, setLocked] = useState(pinConfigured)
   /** Chaque entrée dans une vie (ou une branche) repart d'une coque neuve. */
   const [entry, setEntry] = useState(0)
 
@@ -56,6 +70,25 @@ export default function App({ repository }: { repository?: DestinyRepository }) 
     // Chargement initial uniquement.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [repo])
+
+  // Après une minute en arrière-plan, l'application se verrouille de nouveau.
+  useEffect(() => {
+    let hiddenAt = 0
+    const onChange = () => {
+      if (document.visibilityState === 'hidden') hiddenAt = Date.now()
+      else if (hiddenAt && Date.now() - hiddenAt >= RELOCK_AFTER_MS && pinConfigured()) setLocked(true)
+    }
+    document.addEventListener('visibilitychange', onChange)
+    return () => document.removeEventListener('visibilitychange', onChange)
+  }, [])
+
+  /** Efface tout (après les sauvegardes en cours), puis relance l'application. */
+  async function eraseAll() {
+    await queue.current.catch(() => {})
+    repo.close()
+    await eraseAllData({ dbName: repo.name })
+    reload()
+  }
 
   async function enter(next: BranchSession) {
     persisted.current = next
@@ -111,9 +144,24 @@ export default function App({ repository }: { repository?: DestinyRepository }) 
     setScreen(to)
   }
 
+  if (locked) {
+    return <LockScreen onUnlock={() => setLocked(false)} onEraseAll={eraseAll} />
+  }
+
   return (
     <>
       {screen === 'loading' && <p className="loading">Chargement…</p>}
+      {screen === 'privacy' && (
+        <main className="dossier">
+          <header className="dossier__bar">
+            <button type="button" className="link" onClick={() => setScreen('home')}>
+              ‹ Menu
+            </button>
+          </header>
+          <h1 className="dossier__title">Confidentialité et données</h1>
+          <PrivacyPanel onEraseAll={eraseAll} />
+        </main>
+      )}
       {screen === 'home' && (
         <HomeScreen
           installed={isStandalone()}
@@ -122,6 +170,7 @@ export default function App({ repository }: { repository?: DestinyRepository }) 
           onNewLife={() => setScreen('new')}
           onDossier={() => setScreen('dossier')}
           onTree={() => setScreen('tree')}
+          onPrivacy={() => setScreen('privacy')}
           onContinue={() => {
             if (resume) repo.openBranch(resume.branchId).then(enter, (e) => setNotice(errorText(e)))
           }}
@@ -145,6 +194,7 @@ export default function App({ repository }: { repository?: DestinyRepository }) 
           onChange={update}
           onQuit={() => void leaveLife('home')}
           destiny={destiny}
+          onEraseAll={eraseAll}
         />
       )}
       <div className="rotate-hint">

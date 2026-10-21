@@ -52,8 +52,10 @@ export function parseState(json: string): SimulationState {
   }
   assertState(raw)
   const version = (raw as { version: number }).version
-  if (version === 3) return raw
-  return migrateV2(version === 1 ? migrateV1(raw) : raw)
+  const state = version === 3 ? raw : migrateV2(version === 1 ? migrateV1(raw) : raw)
+  // Champ ajouté après la version 3 initiale : pas encore à la retraite.
+  state.career.pension ??= null
+  return state
 }
 
 /** Version 2 → 3 : narration (souvenirs reconstitués depuis le journal, messages vides) et lieu inconnu. */
@@ -190,6 +192,7 @@ function assertV2(s: Obj): void {
     int(j.daysWorked, 'career.job.daysWorked')
   }
   for (const [sector, days] of Object.entries(obj(career.experience, 'career.experience'))) int(days, `career.experience.${sector}`)
+  if (career.pension !== undefined && career.pension !== null) int(career.pension, 'career.pension')
   if (career.benefit !== null) {
     const b = obj(career.benefit, 'career.benefit')
     int(b.amount, 'career.benefit.amount')
