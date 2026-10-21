@@ -1,8 +1,12 @@
-# Publication sur GitHub Pages — UNIQUEMENT à la demande (bouton « Run workflow »).
-# Rien n'est publié automatiquement. Prérequis : Settings → Pages → Source : « GitHub Actions ».
-name: Publier sur GitHub Pages (manuel)
+# Publication sur GitHub Pages : automatique à chaque modification de la branche main
+# (après lint, typage, tests et construction), ou à la demande (bouton « Run workflow »).
+# Si une vérification échoue, rien n'est publié et la version en ligne reste la précédente.
+# Prérequis : Settings → Pages → Source : « GitHub Actions ».
+name: Publier sur GitHub Pages
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:

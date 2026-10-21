@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { eraseAllData } from '../privacy/erase.ts'
 import { hasPin, RELOCK_AFTER_MS } from '../privacy/lock.ts'
+import { applyUpdate, onUpdateReady } from '../pwa/register.ts'
 import { DestinyError } from '../destiny/errors.ts'
 import { lifeTitle } from '../destiny/summary.ts'
 import type { DeclaredEvent } from '../destiny/types.ts'
@@ -32,7 +33,22 @@ function today() {
   return { year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate() }
 }
 
-export default function App({ repository, reload = () => window.location.reload() }: { repository?: DestinyRepository; reload?: () => void }) {
+/** Mises à jour de l'application installée (remplaçables dans les tests). */
+export interface Updates {
+  onUpdateReady: (listener: () => void) => () => void
+  applyUpdate: () => void
+}
+const SERVICE_WORKER_UPDATES: Updates = { onUpdateReady, applyUpdate }
+
+export default function App({
+  repository,
+  reload = () => window.location.reload(),
+  updates = SERVICE_WORKER_UPDATES,
+}: {
+  repository?: DestinyRepository
+  reload?: () => void
+  updates?: Updates
+}) {
   const [repo] = useState(() => repository ?? new DestinyRepository())
   const [screen, setScreen] = useState<Screen>('loading')
   const [session, setSession] = useState<BranchSession | null>(null)
@@ -46,6 +62,8 @@ export default function App({ repository, reload = () => window.location.reload(
   const queue = useRef<Promise<void>>(Promise.resolve())
   /** Verrouillage par code : rien n'est affiché tant qu'il n'est pas levé. */
   const [locked, setLocked] = useState(pinConfigured)
+  /** Nouvelle version prête à être installée. */
+  const [updateReady, setUpdateReady] = useState(false)
   /** Chaque entrée dans une vie (ou une branche) repart d'une coque neuve. */
   const [entry, setEntry] = useState(0)
 
@@ -81,6 +99,16 @@ export default function App({ repository, reload = () => window.location.reload(
     document.addEventListener('visibilitychange', onChange)
     return () => document.removeEventListener('visibilitychange', onChange)
   }, [])
+
+  useEffect(() => updates.onUpdateReady(() => setUpdateReady(true)), [updates])
+
+  /** Installe la nouvelle version une fois les sauvegardes en cours terminées. */
+  const installUpdate = () => void queue.current.catch(() => {}).then(() => updates.applyUpdate())
+
+  // Hors d'une partie (accueil), la mise à jour s'installe d'elle-même.
+  useEffect(() => {
+    if (updateReady && !locked && (screen === 'home' || screen === 'loading')) void queue.current.catch(() => {}).then(() => updates.applyUpdate())
+  }, [updateReady, locked, screen, updates])
 
   /** Efface tout (après les sauvegardes en cours), puis relance l'application. */
   async function eraseAll() {
@@ -150,6 +178,14 @@ export default function App({ repository, reload = () => window.location.reload(
 
   return (
     <>
+      {updateReady && screen !== 'home' && screen !== 'loading' && (
+        <div className="update-banner" role="status">
+          <span>Une nouvelle version de SIMULIFE est prête.</span>
+          <button type="button" className="btn btn--primary btn--small" onClick={installUpdate}>
+            Mettre à jour
+          </button>
+        </div>
+      )}
       {screen === 'loading' && <p className="loading">Chargement…</p>}
       {screen === 'privacy' && (
         <main className="dossier">

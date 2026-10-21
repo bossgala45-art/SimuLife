@@ -79,6 +79,9 @@ export default function HomeScreen({ installed, savedLife, loadError, onNewLife,
               Licences des bibliothèques utilisées
             </a>
           </p>
+          <p className="home__version">
+            Version {__APP_VERSION__} du {__APP_BUILT_AT__.split('-').reverse().join('/')} — mise à jour automatique.
+          </p>
         </section>
       )}
 
